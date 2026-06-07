@@ -1,4 +1,4 @@
-l<!DOCTYPE html>
+<!DOCTYPE html>
 <html class="dark" lang="tr">
 <head>
 <meta charset="utf-8"/>
@@ -317,9 +317,10 @@ tailwind.config = {
   <!-- HERO -->
   <section class="relative min-h-[420px] md:min-h-[820px] flex items-center justify-center border-b-2 border-zinc-800 mt-14 md:mt-16">
     <!-- Arka Plan Görseli -->
-    <!-- ↓ HERO ARKA PLAN GÖRSELİNİ DEĞİŞTİRMEK İÇİN: src="..." kısmına yeni link yaz -->
+    <!-- ↓ HERO GORSELİNİ DEGİŞTİRMEK İÇİN: src="BURAYA_LİNK_YAZ" kısmını değiştir -->
+    <!-- İpucu: Google Drive'daki bir görseli paylaş → "Bağlantıya sahip olan herkes" → linki kopyala -->
     <div class="absolute inset-0 z-0">
-      <img src="https://imgur.com/a/Gp2beXH"
+      <img src="https://github.com/VuralPegasus/alitasubs/blob/main/Robotic%20Angel.jpg?raw=true"
            alt="Hero" class="w-full h-full object-cover grayscale opacity-40"/>
       <div class="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
     </div>
@@ -376,7 +377,7 @@ tailwind.config = {
     <!-- KATEGORİ FİLTRESİ -->
     <div id="filter-tabs" class="flex flex-wrap gap-2 mb-10">
       <button onclick="filterGrid('tumu')" id="tab-tumu"
-        class="filter-tab active-tab font-mono text-xs uppercase tracking-widest px-4 py-2 border border-white text-white bg-white text-black transition-all cursor-pointer">
+        class="filter-tab font-mono text-xs uppercase tracking-widest px-4 py-2 border border-purple-500 text-black bg-purple-500 transition-all cursor-pointer">
         Tümü
       </button>
       <button onclick="filterGrid('devam-ediyor')" id="tab-devam-ediyor"
@@ -1281,17 +1282,7 @@ window.addEventListener('popstate', function(e) {
 <div id="admin-toast" class="admin-toast"></div>
 
 <script>
-/* ══════════════════════════════════════════════════════
-   ADMİN PANELİ — localStorage + Şifre + Düzenleme
-   ══════════════════════════════════════════════════════ */
-
-/* ── Varsayılan şifre (SHA-256): "admin123" ── */
 var ADMIN_PW_HASH = '42bf6b2687c6938e2855aa39be00f5c1f3f28e5e1fa991141bd469280980b986';
-/* Şifreni değiştirmek için:
-   1. Tarayıcı konsolunu aç (F12)
-   2. Yaz: crypto.subtle.digest('SHA-256',new TextEncoder().encode('yenisifren')).then(b=>console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
-   3. Çıkan hash'i ADMIN_PW_HASH değerine koy */
-
 var adminUnlocked = false;
 var epRowCount    = 0;
 var editEpRowCount = 0;
