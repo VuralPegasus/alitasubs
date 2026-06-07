@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html class="dark" lang="tr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AlitaSubs</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Permanent+Marker&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "background":               "#0e0b14",
+        "surface":                  "#0e0b14",
+        "surface-container":        "#17122a",
+        "surface-container-high":   "#1e1835",
+        "surface-container-highest":"#271f42",
+        "surface-variant":          "#271f42",
+        "on-surface":               "#e8e0f0",
+        "on-surface-variant":       "#b8a8d4",
+        "primary":                  "#c4a8ff",
+        "on-primary":               "#1a0d33",
+        "secondary":                "#9b7fd4",
+        "outline":                  "#7b5fa8",
+        "outline-variant":          "#3d2d5c",
+      },
+      fontFamily: {
+        "logo":  ["Permanent Marker"],
+        "body":  ["Inter"],
+      }
+    }
+  }
+}
+</script>
+<style>
+  /* ===== GRAIN DOKU ===== */
+  .film-grain {
+    position: fixed; top:0; left:0;
+    width:100vw; height:100vh;
+    pointer-events:none; z-index:9999; opacity:0.04;
+    background-image: repeating-radial-gradient(circle at 17% 32%, white, black 0.00085px);
+  }
+
+  /* ===== SAYFA GEÇİŞ ANİMASYONU ===== */
+  #page-overlay {
+    position:fixed; inset:0; background:#000;
+    z-index:9998; pointer-events:none;
+    opacity:0; transition: opacity 0.25s ease;
+  }
+  #page-overlay.flash { opacity:1; }
+
+  /* ===== BÖLÜMLER ===== */
+  .page { display:none; }
+  .page.active {
+    display:block;
+    animation: fadeUp 0.45s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(20px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  /* ===== ANİME KARTLARI ===== */
+  .anime-card {
+    position:relative; overflow:hidden;
+    aspect-ratio:2/3; cursor:pointer;
+    border:1px solid #3d2d5c;
+    transition: border-color 0.3s, transform 0.35s cubic-bezier(0.22,1,0.36,1), box-shadow 0.35s;
+  }
+  .anime-card img {
+    width:100%; height:100%; object-fit:cover;
+    filter:grayscale(100%);
+    transition: filter 0.5s, transform 0.4s cubic-bezier(0.22,1,0.36,1);
+  }
+  .anime-card:hover { border-color:#c4a8ff; transform:translateY(-6px); box-shadow:0 12px 40px rgba(196,168,255,0.15); }
+  .anime-card:hover img { filter:grayscale(0%); transform:scale(1.05); }
+  .anime-card-overlay {
+    position:absolute; inset:0;
+    background:linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%);
+    opacity:0; transition:opacity 0.3s; display:flex; align-items:flex-end; padding:12px;
+  }
+  .anime-card:hover .anime-card-overlay { opacity:1; }
+
+  /* ===== BUTON DOLMA EFEKTİ ===== */
+  .fill-btn {
+    position:relative; overflow:hidden;
+    border:2px solid #c4a8ff; color:#c4a8ff;
+    padding:14px 28px; font-weight:700;
+    text-transform:uppercase; letter-spacing:0.1em; font-size:12px;
+    background:transparent; cursor:pointer;
+    transition: color 0.3s;
+  }
+  .fill-btn::before {
+    content:''; position:absolute; inset:0;
+    background:#c4a8ff; transform:scaleX(0);
+    transform-origin:left;
+    transition: transform 0.3s cubic-bezier(0.22,1,0.36,1);
+    z-index:0;
+  }
+  .fill-btn:hover::before { transform:scaleX(1); }
+  .fill-btn:hover { color:#1a0d33; }
+  .fill-btn span { position:relative; z-index:1; }
+  .fill-btn:active { transform:scale(0.97); }
+
+  /* ===== BÖLÜM BUTONLARI (EP) ===== */
+  .ep-btn {
+    position:relative; overflow:hidden;
+    border:1px solid #555; color:#c4a8ff;
+    padding:12px 8px; font-size:0.85rem;
+    background:#0e0b14; cursor:pointer;
+    border-radius:4px;
+    transition: border-color 0.3s, color 0.3s;
+    opacity:0; transform:scale(0.9);
+  }
+  .ep-btn.revealed { animation: epIn 0.4s cubic-bezier(0.22,1,0.36,1) forwards; }
+  @keyframes epIn {
+    from { opacity:0; transform:scale(0.88); }
+    to   { opacity:1; transform:scale(1); }
+  }
+  .ep-btn::before {
+    content:''; position:absolute; inset:0;
+    background:#c4a8ff; transform:scaleX(0);
+    transform-origin:left;
+    transition: transform 0.3s cubic-bezier(0.22,1,0.36,1);
+    z-index:0;
+  }
+  .ep-btn:hover::before { transform:scaleX(1); }
+  .ep-btn:hover { color:#1a0d33; border-color:#c4a8ff; }
+  .ep-btn span { position:relative; z-index:1; }
+
+  /* ===== RIPPLE ===== */
+  .ripple {
+    position:absolute; border-radius:50%;
+    background:rgba(196,168,255,0.25);
+    transform:scale(0); animation:rippleAnim 0.55s linear;
+    pointer-events:none;
+  }
+  @keyframes rippleAnim { to { transform:scale(4); opacity:0; } }
+
+  /* ===== VİDEO OYNATICI ===== */
+  .video-wrap {
+    margin-top:24px; width:100%;
+    animation: fadeUp 0.5s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .video-wrap iframe {
+    width:100%; aspect-ratio:16/9;
+    border:1px solid #3d2d5c; border-radius:8px;
+  }
+
+  /* ===== ALTYAZI LİSTE ===== */
+  .sub-row {
+    display:flex; flex-direction:column; gap:16px;
+    padding:24px 0; border-bottom:1px solid #353434;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+  .sub-row:hover { border-color:#c4a8ff; transform:translateY(-2px); }
+
+  /* ===== YAKINDA YAZISI ===== */
+  .coming-soon {
+    margin-top:80px; font-size:1rem; color:#5b3d8a;
+    letter-spacing:4px; text-transform:uppercase;
+    text-align:center;
+    animation: pulse 3s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:0.3} 50%{opacity:1} }
+
+  /* ===== MOBİL ===== */
+
+  /* Genel sayfa padding'i küçülüyor */
+  .page-content { padding-left:1rem; padding-right:1rem; }
+
+  /* Anime grid */
+  .anime-grid { grid-template-columns: repeat(3, 1fr) !important; gap:10px !important; }
+
+  /* Bölüm butonu satırı — mobilde daha kompakt */
+  .ep-row { display:flex; flex-direction:column; gap:4px; }
+  .ep-row-btns { display:flex; gap:4px; }
+
+  /* Ep-btn mobilde daha küçük */
+  .ep-btn { padding:10px 6px; font-size:0.75rem; }
+
+  /* Video wrap */
+  .video-wrap iframe { border-radius:4px; }
+
+  /* Filter tabs — yatay kaydır */
+  #filter-tabs { flex-wrap:nowrap !important; overflow-x:auto; -webkit-overflow-scrolling:touch;
+                 scrollbar-width:none; padding-bottom:4px; }
+  #filter-tabs::-webkit-scrollbar { display:none; }
+  #filter-tabs .filter-tab { flex-shrink:0; }
+
+  #sub-filter-tabs { flex-wrap:nowrap !important; overflow-x:auto; -webkit-overflow-scrolling:touch;
+                     scrollbar-width:none; padding-bottom:4px; }
+  #sub-filter-tabs::-webkit-scrollbar { display:none; }
+  #sub-filter-tabs .sub-filter-tab { flex-shrink:0; }
+
+  @media (max-width:480px) {
+    .hero-title { font-size:2.8rem !important; }
+    .anime-grid { grid-template-columns: repeat(3, 1fr) !important; gap:8px !important; }
+    .ep-btn { padding:9px 4px; font-size:0.7rem; }
+  }
+
+  @media (min-width:601px) and (max-width:1024px) {
+    .anime-grid { grid-template-columns: repeat(4,1fr) !important; }
+  }
+
+  /* Mobil navbar gizle/göster */
+  #mobile-menu { display:none; }
+  #mobile-menu.open { display:flex; }
+
+  /* ===== ADMİN PANELİ ===== */
+  #admin-modal {
+    display:none; position:fixed; inset:0; z-index:10000;
+    background:rgba(0,0,0,0.95); overflow-y:auto;
+  }
+  #admin-modal.open { display:flex; align-items:flex-start; justify-content:center; padding:20px; }
+  .admin-box {
+    width:100%; max-width:680px; margin-top:60px; margin-bottom:40px;
+    background:#0e0b14; border:2px solid #c4a8ff;
+    padding:24px; border-radius:4px;
+  }
+  .admin-input {
+    width:100%; background:#17122a; border:1px solid #3d2d5c; color:#e8e0f0;
+    padding:10px 14px; font-family:monospace; font-size:0.85rem;
+    border-radius:4px; outline:none; box-sizing:border-box;
+    transition: border-color 0.2s;
+  }
+  .admin-input:focus { border-color:#c4a8ff; }
+  .admin-input.error { border-color:#f87171; }
+  .admin-label {
+    font-family:monospace; font-size:0.72rem; text-transform:uppercase;
+    letter-spacing:0.1em; color:#b8a8d4; margin-bottom:5px; display:block;
+  }
+  .admin-section {
+    border:1px solid #3d2d5c; border-radius:4px; padding:16px; margin-bottom:16px;
+  }
+  .ep-input-row {
+    display:grid; grid-template-columns:90px 1fr 1fr; gap:8px; margin-bottom:8px; align-items:start;
+  }
+  @media (max-width:520px) {
+    .ep-input-row { grid-template-columns:1fr; }
+  }
+  .admin-btn {
+    font-family:monospace; font-size:0.78rem; text-transform:uppercase;
+    letter-spacing:0.08em; padding:10px 18px; border:none; cursor:pointer;
+    border-radius:3px; font-weight:700; transition: opacity 0.2s;
+  }
+  .admin-btn:active { opacity:0.7; }
+  .admin-btn-primary { background:#c4a8ff; color:#1a0d33; }
+  .admin-btn-danger  { background:transparent; color:#f87171; border:1px solid #f87171; }
+  .admin-btn-ghost   { background:transparent; color:#b8a8d4; border:1px solid #3d2d5c; }
+  .admin-toast {
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:#c4a8ff; color:#1a0d33; font-family:monospace; font-weight:700;
+    font-size:0.8rem; padding:12px 24px; border-radius:4px; z-index:11000;
+    opacity:0; transition: opacity 0.3s; pointer-events:none; white-space:nowrap;
+  }
+  .admin-toast.show { opacity:1; }
+  .ep-block { background:#17122a; border-radius:4px; padding:12px; margin-bottom:10px; }
+  .admin-lock-screen { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:40px 20px; }
+</style>
+</head>
+<body class="bg-background text-on-surface min-h-screen flex flex-col font-body antialiased">
+
+<!-- GRAIN DOKU -->
+<div class="film-grain"></div>
+<!-- GEÇİŞ OVERLAY -->
+<div id="page-overlay"></div>
+
+<!-- =============================================
+     NAVBAR
+     Discord linkini değiştirmek için:
+     → aşağıda "DISCORD_LİNKİNİ_KOY" yazan yeri bul
+============================================= -->
+<nav class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-4 md:px-8 h-14 md:h-16 bg-black/95 backdrop-blur-sm border-b-2 border-purple-500">
+  <!-- LOGO -->
+  <button onclick="goTo('anasayfa')" class="font-logo text-2xl text-purple-300 tracking-widest hover:opacity-80 transition-opacity bg-transparent border-none cursor-pointer">
+    ALITASUBS
+  </button>
+
+  <!-- MASAÜSTÜ NAV -->
+  <div class="hidden md:flex items-center gap-8 font-mono uppercase tracking-widest text-xs">
+    <button onclick="goTo('arsiv')"      class="nav-link text-zinc-500 hover:text-black hover:bg-purple-400 transition-all px-2 py-1 bg-transparent border-none cursor-pointer font-mono uppercase tracking-widest text-xs">Arşiv</button>
+    <button onclick="goTo('altyazilar')" class="nav-link text-zinc-500 hover:text-black hover:bg-purple-400 transition-all px-2 py-1 bg-transparent border-none cursor-pointer font-mono uppercase tracking-widest text-xs">Altyazılar</button>
+    <button onclick="goTo('hakkimda')"   class="nav-link text-zinc-500 hover:text-black hover:bg-purple-400 transition-all px-2 py-1 bg-transparent border-none cursor-pointer font-mono uppercase tracking-widest text-xs">Hakkımda</button>
+    <span id="nav-discord"></span>
+    <button onclick="openAdmin()" title="Yönetici Paneli" class="text-zinc-600 hover:text-purple-400 transition-colors bg-transparent border-none cursor-pointer p-1" style="line-height:0">
+      <span class="material-symbols-outlined" style="font-size:18px;">admin_panel_settings</span>
+    </button>
+  </div>
+
+  <!-- MOBİL HAMBURGERe -->
+  <button id="hamburger" class="md:hidden text-white bg-transparent border-none cursor-pointer" onclick="toggleMobileMenu()">
+    <span class="material-symbols-outlined">menu</span>
+  </button>
+</nav>
+
+<!-- MOBİL MENÜ -->
+<div id="mobile-menu" class="fixed top-14 md:top-16 left-0 w-full z-40 flex-col items-start px-6 py-5 gap-3 border-b-2 border-purple-500" style="background-color:#0a0714;">
+  <button onclick="goTo('arsiv');toggleMobileMenu()"      class="text-white font-mono uppercase tracking-widest text-sm bg-transparent border-none cursor-pointer w-full text-left py-2">Arşiv</button>
+  <button onclick="goTo('altyazilar');toggleMobileMenu()" class="text-white font-mono uppercase tracking-widest text-sm bg-transparent border-none cursor-pointer w-full text-left py-2">Altyazılar</button>
+  <button onclick="goTo('hakkimda');toggleMobileMenu()"   class="text-white font-mono uppercase tracking-widest text-sm bg-transparent border-none cursor-pointer w-full text-left py-2">Hakkımda</button>
+  <span id="mobile-discord"></span>
+</div>
+
+
+<!-- ╔══════════════════════════════════════════════╗
+     ║  SAYFA 1 — ANA SAYFA                        ║
+     ╚══════════════════════════════════════════════╝ -->
+<div id="page-anasayfa" class="page active">
+
+  <!-- HERO -->
+  <section class="relative min-h-[420px] md:min-h-[820px] flex items-center justify-center border-b-2 border-zinc-800 mt-14 md:mt-16">
+    <!-- Arka Plan Görseli -->
+    <!-- ↓ HERO ARKA PLAN GÖRSELİNİ DEĞİŞTİRMEK İÇİN: src="..." kısmına yeni link yaz -->
+    <div class="absolute inset-0 z-0">
+      <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDI2xhzcQL2jZOAOHm5PoJqX1-8hvKK48TXbP1aOMPBUaScA7lyInQQkV-lPMkocX9ndIuyPXj0nMJYl7d5-3zWn-gIEzs8gbeYBduYhbk3UzjZUX7QTCWzjiUxngWPFUdto_feUMaavdjlEWnuXQROeUPiXQMcCftOpE_Gs0GgtBwzSJBaadXBwfFYIK2YTdR0-PESN14XQ-Wru02nUXah_XopW3fkDOd0FtBJAD_Bqkd17HVm8qfmnTmYet6cIPOnGclndLJBVPHn"
+           alt="Hero" class="w-full h-full object-cover grayscale opacity-40"/>
+      <div class="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
+    </div>
+    <!-- Hero Yazı -->
+    <div class="relative z-10 text-center px-4 max-w-4xl mx-auto">
+      <h1 class="hero-title font-logo text-[52px] sm:text-[70px] md:text-[120px] leading-none text-white mb-4 md:mb-6 tracking-tighter">ALITASUBS</h1>
+      <p id="hero-slogan" class="text-base md:text-2xl text-zinc-400 mb-6 md:mb-10 font-light tracking-wide"></p>
+      <button onclick="goTo('arsiv')" class="fill-btn"><span>Arşive Gir</span></button>
+    </div>
+  </section>
+
+  <!-- ÖZEL ANİMELER (ANA SAYFADA ÖNE ÇIKANLAR) -->
+  <!-- =============================================
+       ANA SAYFADA ÖNE ÇIKAN KARTLARı DÜZENLEMEK:
+       Her "featured-card" bloğunu istediğin anime ile doldur.
+       Sadece 3 kart göster — öne çıkarmak istediklerini seç.
+  ============================================= -->
+  <section class="py-10 md:py-20 px-4 md:px-8 max-w-[1440px] mx-auto border-b-2 border-zinc-800">
+    <div class="flex justify-between items-end mb-6 md:mb-10">
+      <h2 class="font-logo text-2xl md:text-4xl text-white">Proje Arşivi</h2>
+      <button onclick="goTo('arsiv')" class="text-zinc-500 hover:text-white text-xs font-mono uppercase tracking-widest border-b border-zinc-500 hover:border-white transition-colors bg-transparent border-l-0 border-r-0 border-t-0 cursor-pointer pb-1">
+        Tümünü Gör →
+      </button>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8">
+
+      <!-- ★ ÖNE ÇIKAN KART 1 ★
+           Değiştir: src, alt, isim, bölüm bilgisi, durum (Tamamlandı/Devam Ediyor) -->
+      <div class="group cursor-pointer" onclick="goTo('arsiv')">
+        <div class="anime-card mb-4">
+          <img src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fm.media-amazon.com%2Fimages%2FM%2FMV5BZGU1ZDcyN2YtZjU4MS00YWFhLWI0ZDYtZTgxMDVlMTYxMzNjXkEyXkFqcGc%40._V1_.jpg" alt="A Kite"/>
+          <div class="anime-card-overlay">
+            <span class="text-white text-xs font-mono uppercase tracking-widest">İzle →</span>
+          </div>
+          <div class="absolute top-3 left-3 bg-black/80 px-2 py-1 border border-white">
+            <span class="text-white text-[10px] font-mono uppercase tracking-widest">Tamamlandı</span>
+          </div>
+        </div>
+        <div class="flex justify-between items-start mt-2">
+          <h3 class="text-white font-bold text-sm md:text-lg">A Kite</h3>
+          <span class="text-zinc-500 text-xs font-mono">1 Bölüm</span>
+        </div>
+      </div>
+
+      <!-- ★ ÖNE ÇIKAN KART 2 ★ -->
+      <div class="group cursor-pointer" onclick="goTo('arsiv')">
+        <div class="anime-card mb-4">
+          <img src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Favo-magazine.com%2Fwp-content%2Fuploads%2F2016%2F11%2Flovely_complex.jpg" alt="Lovely Complex"/>
+          <div class="anime-card-overlay">
+            <span class="text-white text-xs font-mono uppercase tracking-widest">İzle →</span>
+          </div>
+          <div class="absolute top-3 left-3 bg-black/80 px-2 py-1 border border-zinc-600">
+            <span class="text-zinc-400 text-[10px] font-mono uppercase tracking-widest">Devam Ediyor</span>
+          </div>
+        </div>
+        <div class="flex justify-between items-start mt-2">
+          <h3 class="text-white font-bold text-sm md:text-lg">Lovely Complex</h3>
+          <span class="text-zinc-500 text-xs font-mono">3 Bölüm</span>
+        </div>
+      </div>
+
+      <!-- ★ ÖNE ÇIKAN KART 3 ★ -->
+      <div class="group cursor-pointer" onclick="goTo('arsiv')">
+        <div class="anime-card mb-4">
+          <img src="https://c8.alamy.com/comp/2C85KR4/the-animatrix-video-year-2003-usa-directors-peter-chung-andrew-r-jones-yoshiaki-kawajiri-takeshi-koike-mahiro-maeda-koji-morimoto-shinichiro-watanabe-collection-of-9-animated-short-films-american-poster-2C85KR4.jpg" alt="The Animatrix"/>
+          <div class="anime-card-overlay">
+            <span class="text-white text-xs font-mono uppercase tracking-widest">İzle →</span>
+          </div>
+          <div class="absolute top-3 left-3 bg-black/80 px-2 py-1 border border-zinc-600">
+            <span class="text-zinc-400 text-[10px] font-mono uppercase tracking-widest">Devam Ediyor</span>
+          </div>
+        </div>
+        <div class="flex justify-between items-start mt-2">
+          <h3 class="text-white font-bold text-sm md:text-lg">The Animatrix</h3>
+          <span class="text-zinc-500 text-xs font-mono">Yakında</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <div class="site-footer-placeholder"></div>
+</div>
+
+
+<!-- ╔══════════════════════════════════════════════╗
+     ║  SAYFA 2 — ARŞİV (TÜM ANİMELER + VİDEO)   ║
+     ╚══════════════════════════════════════════════╝ -->
+<div id="page-arsiv" class="page">
+  <main class="pt-20 md:pt-28 pb-16 md:pb-24 px-4 md:px-8 max-w-[1440px] mx-auto">
+
+    <!-- BAŞLIK -->
+    <div class="border-b-2 border-zinc-800 pb-6 mb-8 md:mb-12">
+      <h1 class="font-logo text-3xl md:text-5xl text-white mb-2">Arşiv</h1>
+      <p class="text-zinc-500 text-sm font-mono">Tüm animelerimiz. Karta tıklayıp linkleri görebilirsiniz.</p>
+    </div>
+
+    <!-- KATEGORİ FİLTRESİ -->
+    <div id="filter-tabs" class="flex flex-wrap gap-2 mb-10">
+      <button onclick="filterGrid('tumu')" id="tab-tumu"
+        class="filter-tab active-tab font-mono text-xs uppercase tracking-widest px-4 py-2 border border-white text-white bg-white text-black transition-all cursor-pointer">
+        Tümü
+      </button>
+      <button onclick="filterGrid('devam-ediyor')" id="tab-devam-ediyor"
+        class="filter-tab font-mono text-xs uppercase tracking-widest px-4 py-2 border border-zinc-600 text-zinc-400 bg-transparent hover:border-purple-400 hover:text-purple-300 transition-all cursor-pointer">
+        Devam Ediyor
+      </button>
+      <button onclick="filterGrid('tamamlandi')" id="tab-tamamlandi"
+        class="filter-tab font-mono text-xs uppercase tracking-widest px-4 py-2 border border-zinc-600 text-zinc-400 bg-transparent hover:border-purple-400 hover:text-purple-300 transition-all cursor-pointer">
+        Tamamlandı
+      </button>
+      <button onclick="filterGrid('askiya-alindi')" id="tab-askiya-alindi"
+        class="filter-tab font-mono text-xs uppercase tracking-widest px-4 py-2 border border-zinc-600 text-zinc-400 bg-transparent hover:border-purple-400 hover:text-purple-300 transition-all cursor-pointer">
+        Askıya Alındı
+      </button>
+    </div>
+
+    <div id="anime-grid" class="anime-grid grid gap-5 mb-16" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">
+      <!-- JS tarafından oluşturuluyor -->
+    </div>
+
+    <!-- BÖLÜM PANELLERİ -->
+    <div id="ep-panels-container"></div>
+
+
+    <!-- VİDEO OYNATICI (tüm animeler için ortak) -->
+    <div id="video-player" class="video-wrap hidden" style="margin-left:-1rem;margin-right:-1rem;padding:0 1rem;">
+      <hr class="border-zinc-800 mb-5"/>
+      <!-- GOOGLE HESABI UYARISI -->
+      <div class="text-center text-xs text-zinc-600 font-mono border border-zinc-800 rounded px-4 py-3 mb-4">
+        ⚠️ Video açılmıyorsa tarayıcıda bir <strong class="text-zinc-400">Google hesabına giriş yapılmış</strong> olması gerekiyor.
+      </div>
+      <iframe id="video-frame" src="" allowfullscreen
+        sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"></iframe>
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <div class="site-footer-placeholder"></div>
+</div>
+
+
+<!-- ╔══════════════════════════════════════════════╗
+     ║  SAYFA 3 — ALTYAZILAR                       ║
+     ╚══════════════════════════════════════════════╝ -->
+<div id="page-altyazilar" class="page">
+  <main class="pt-20 md:pt-28 pb-16 md:pb-24 px-4 md:px-8 max-w-[900px] mx-auto">
+    <div class="border-b-2 border-zinc-800 pb-6 mb-8">
+      <h1 class="font-logo text-3xl md:text-5xl text-white mb-2">Altyazılar</h1>
+      <p class="text-zinc-500 text-sm font-mono">Ham, çerçeve-mükemmel altyazı dosyaları. Anime satırına tıkla, indirme linklerini gör.</p>
+    </div>
+
+    <!-- =============================================
+         ALTYAZI LİSTESİ — KOMPAKT ACCORDION
+
+         YENİ ANİME EKLEMEK İÇİN:
+         Aşağıdaki şablonu kopyalayıp listenin sonuna yapıştır.
+         Değiştirmen gereken 3 şey:
+           1. sub-accordion-btn'deki onclick → toggleSub('yeni-id')
+           2. img src → kapak görseli linki
+           3. Anime adı metni
+           4. id="sub-yeni-id" → aynı id olmalı
+           5. İçine indirme linkleri ekle (şablon aşağıda)
+    ============================================= -->
+    <!-- KATEGORİ FİLTRESİ -->
+    <div id="sub-filter-tabs" class="flex flex-wrap gap-2 mb-8">
+      <button onclick="filterSubList('tumu')" id="subtab-tumu"
+        class="sub-filter-tab font-mono text-xs uppercase tracking-widest px-4 py-2 border border-white text-black bg-white transition-all cursor-pointer">
+        Tümü
+      </button>
+      <button onclick="filterSubList('devam-ediyor')" id="subtab-devam-ediyor"
+        class="sub-filter-tab font-mono text-xs uppercase tracking-widest px-4 py-2 border border-zinc-600 text-zinc-400 bg-transparent hover:border-purple-400 hover:text-purple-300 transition-all cursor-pointer">
+        Devam Ediyor
+      </button>
+      <button onclick="filterSubList('tamamlandi')" id="subtab-tamamlandi"
+        class="sub-filter-tab font-mono text-xs uppercase tracking-widest px-4 py-2 border border-zinc-600 text-zinc-400 bg-transparent hover:border-purple-400 hover:text-purple-300 transition-all cursor-pointer">
+        Tamamlandı
+      </button>
+      <button onclick="filterSubList('askiya-alindi')" id="subtab-askiya-alindi"
+        class="sub-filter-tab font-mono text-xs uppercase tracking-widest px-4 py-2 border border-zinc-600 text-zinc-400 bg-transparent hover:border-purple-400 hover:text-purple-300 transition-all cursor-pointer">
+        Askıya Alındı
+      </button>
+    </div>
+
+    <div class="flex flex-col" id="sub-list">
+      <!-- JS tarafından oluşturuluyor -->
+    </div>
+  </main>
+  <div class="site-footer-placeholder"></div>
+</div>
+
+
+<!-- ╔══════════════════════════════════════════════╗
+     ║  SAYFA 4 — HAKKIMDA                         ║
+     ╚══════════════════════════════════════════════╝ -->
+<div id="page-hakkimda" class="page">
+  <main class="pt-20 md:pt-28 pb-16 md:pb-24 px-4 md:px-8 max-w-[1440px] mx-auto">
+
+    <!-- BAŞLIK -->
+    <section class="mb-12 md:mb-24 max-w-4xl">
+      <!-- ↓ Bu başlığı ve metni istediğin gibi değiştir -->
+      <h1 class="font-logo text-2xl md:text-5xl lg:text-6xl text-white mb-6 md:mb-8 border-l-4 md:border-l-8 border-purple-500 pl-4 md:pl-6">
+        UNDERGROUND SİNEMAYI HALKA ULAŞTIRIYORUZ.
+      </h1>
+      <p class="text-zinc-400 text-base leading-relaxed max-w-2xl">
+        Negatif alanda yaşıyoruz. Japon siber-punk ve neo-noir animasyonunun ham, uz妥協suz eserlerini Türkçeye çeviriyoruz.
+        Gösterişsiz, sadece orijinal yaratıcıların ham niyeti — titizlikle korunmuş.
+      </p>
+    </section>
+
+    <!-- KARTLARile BENTO GRID -->
+    <section class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-8 mb-12 md:mb-24">
+      <!-- MİSYON KARTI -->
+      <div class="md:col-span-8 bg-zinc-900 border-2 border-zinc-700 p-5 md:p-8 hover:border-white transition-colors duration-300">
+        <div class="flex items-center gap-4 mb-6">
+          <span class="material-symbols-outlined text-4xl text-white">visibility</span>
+          <h2 class="text-white font-bold text-2xl">MİSYON</h2>
+        </div>
+        <!-- ↓ Misyon metnini düzenle -->
+        <p class="text-zinc-400 leading-relaxed">
+          Misyonumuz net: dil engellerini ortadan kaldırmak. Göz ardı edilmiş, önemli sinemaları seçiyor ve altyazılıyoruz. 
+          Her diyalog satırı, yönetmenin mimarisinin bir parçası; Türkçede de sağlam durmasını sağlıyoruz.
+        </p>
+      </div>
+      <!-- HASSASIYET KARTI -->
+      <div class="md:col-span-4 bg-zinc-900 border-2 border-zinc-700 p-5 md:p-8 hover:border-white transition-colors duration-300">
+        <div class="flex items-center gap-4 mb-6">
+          <span class="material-symbols-outlined text-4xl text-white">translate</span>
+          <h2 class="text-white font-bold text-xl">HASSASIYET</h2>
+        </div>
+        <!-- ↓ Maddeleri düzenle -->
+        <ul class="space-y-3 text-zinc-400 text-sm">
+          <li class="flex items-start gap-2"><span class="text-white mt-0.5">□</span> Ham bağlam koruması</li>
+          <li class="flex items-start gap-2"><span class="text-white mt-0.5">□</span> Stilize tipografi</li>
+          <li class="flex items-start gap-2"><span class="text-white mt-0.5">□</span> Sansürsüz çeviri</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- DISCORD CTA -->
+    <section class="border-t-2 border-purple-900/50 pt-10 md:pt-20 text-center">
+      <h2 class="text-white font-bold text-2xl md:text-3xl mb-3 md:mb-4">AĞA GİR</h2>
+      <p class="text-zinc-500 text-sm mb-6 md:mb-10 max-w-md mx-auto font-mono">
+        Topluluğa katıl. Yayınları tartış, çeviri hatalarını bildir, ham arşive erken eriş.
+      </p>
+      <!-- ↓ href'e Discord linkini koy -->
+      <a id="hakkimda-discord" href="#" target="_blank" class="fill-btn inline-flex items-center gap-3">
+        <span class="material-symbols-outlined">forum</span>
+        <span>Discord'a Katıl</span>
+      </a>
+    </section>
+  </main>
+  <div class="site-footer-placeholder"></div>
+</div>
+
+
+<!-- =============================================
+     SITE KONFİGÜRASYONU — Tek değişiklik yeri
+============================================= -->
+<script>
+var SITE_CONFIG = {
+  ad:      'ALITASUBS',
+  slogan:  '',
+  yil:     '2025',
+  altyazi: 'Türkçe Anime',
+  discord: 'DISCORD_LİNKİNİ_KOY'   /* ← Discord linkini buraya yaz */
+};
+
+function renderSiteGlobals() {
+  var cfg = SITE_CONFIG;
+  var footerHTML =
+    '<footer class="w-full py-6 md:py-10 px-4 md:px-8 flex flex-col md:flex-row justify-between items-center gap-2 md:gap-4 bg-black border-t-2 border-purple-900/50">' +
+      '<div class="font-logo text-lg text-purple-300">' + cfg.ad + '</div>' +
+      '<div class="font-mono text-[10px] uppercase tracking-widest text-zinc-600">\u00a9 ' + cfg.yil + ' ' + cfg.ad + '. ' + cfg.altyazi + '.</div>' +
+    '</footer>';
+
+  document.querySelectorAll('.site-footer-placeholder').forEach(function(el) {
+    el.outerHTML = footerHTML;
+  });
+
+  var navDc = document.getElementById('nav-discord');
+  if (navDc) navDc.outerHTML =
+    '<a href="' + cfg.discord + '" target="_blank" class="text-zinc-500 hover:text-black hover:bg-purple-400 transition-all px-2 py-1 font-mono uppercase tracking-widest text-xs">Discord</a>';
+
+  var mobDc = document.getElementById('mobile-discord');
+  if (mobDc) mobDc.outerHTML =
+    '<a href="' + cfg.discord + '" target="_blank" class="text-white font-mono uppercase tracking-widest text-sm py-2 block">Discord</a>';
+
+  var hakDc = document.getElementById('hakkimda-discord');
+  if (hakDc) hakDc.href = cfg.discord;
+
+  var slogan = document.getElementById('hero-slogan');
+  if (slogan) slogan.textContent = cfg.slogan;
+}
+</script>
+
+<!-- =============================================
+     JAVASCRIPT — Dokunma, sadece okuyabilirsin :)
+============================================= -->
+<!-- ╔══════════════════════════════════════════════╗
+     ║  VERİ TABANI — Sadece buraya ekle/düzenle   ║
+     ╚══════════════════════════════════════════════╝
+
+  ★ YENİ ANİME EKLEMEK İÇİN:
+     Aşağıdaki ANIME_DB dizisine bir obje ekle:
+
+     {
+       id:     'anime-id',          // küçük harf, tire ile
+       title:  'Anime Adı',
+       cover:  'https://...',       // kapak görseli linki
+       status: 'tamamlandi',        // 'tamamlandi' | 'devam-ediyor' | 'askiya-alindi'
+       episodes: [
+         { label: '1. Bölüm', video: 'https://drive.google.com/file/d/ID/view', sub: 'https://mega.nz/...', dl: 'https://mega.nz/...' },
+         // video: Drive linki (oynatma için)
+         // sub:   Mega linki (altyazı indirme)
+         // dl:    Mega linki (video indirme) — boş bırakırsan Drive'dan otomatik üretilir
+       ]
+     },
+
+  Hepsi bu kadar. Arşiv kartı, bölüm paneli ve altyazı satırı
+  otomatik olarak oluşturulur.
+-->
+<script>
+/* ═══════════════════════════════════════════
+   DRIVE YARDIMCI FONKSİYONLARI
+   ─────────────────────────────────────────
+   /view veya /preview → otomatik doğru forma çevrilir.
+   dl alanı artık zorunlu değil; video linkinden üretilir.
+   ═══════════════════════════════════════════ */
+
+/* Drive dosya ID'sini linkten çıkar */
+function driveId(url) {
+  if (!url) return null;
+  var m = url.match(/\/d\/([a-zA-Z0-9_-]{10,})/);
+  return m ? m[1] : null;
+}
+
+/* İzleme linki → /preview formatı (iframe için) */
+function drivePreview(url) {
+  if (!url || url === 'LINK_BURAYA') return url;
+  var id = driveId(url);
+  if (!id) return url;
+  return 'https://drive.google.com/file/d/' + id + '/preview';
+}
+
+/* Mega linki mi? */
+function isMega(url) {
+  return !!url && url.indexOf('mega.nz') !== -1;
+}
+
+/* İndirme linki: dl alanı varsa direkt kullan (Mega veya başka),
+   yoksa Drive'dan otomatik üret */
+function resolveDownload(ep) {
+  var dl = ep.dl;
+  if (dl && dl !== 'VIDEO_İNDİR_LİNKİ' && dl !== 'MEGA_LİNKİ') return dl;
+  // dl yoksa Drive'dan üret (eski davranış)
+  return driveDl(ep.video);
+}
+
+/* Drive → indirme linki (sadece drive için) */
+function driveDl(url) {
+  if (!url || url === 'LINK_BURAYA') return null;
+  if (isMega(url)) return url;
+  if (url.indexOf('export=download') !== -1 || url.indexOf('/uc?') !== -1) return url;
+  var id = driveId(url);
+  if (!id) return null;
+  return 'https://drive.google.com/uc?export=download&id=' + id;
+}
+</script>
+
+<script>
+/* ═══════════════════════════════════════════
+   ANIME_DB — tek kaynak, her iki sayfayı besler
+   ═══════════════════════════════════════════ */
+var ANIME_DB = [
+  {
+    id: 'a-kite',
+    title: 'A Kite',
+    cover: 'https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fm.media-amazon.com%2Fimages%2FM%2FMV5BZGU1ZDcyN2YtZjU4MS00YWFhLWI0ZDYtZTgxMDVlMTYxMzNjXkEyXkFqcGc%40._V1_.jpg',
+    status: 'tamamlandi',
+    episodes: [
+      { label: '1. Bölüm', video: 'https://drive.google.com/file/d/15kphnh-eJ3fcJr0iuJP8UN7eQg26pcdR/preview', sub: 'MEGA_LİNKİ', dl: 'MEGA_LİNKİ' }
+    ]
+  },
+  {
+    id: 'alita',
+    title: 'Alita',
+    cover: 'https://static.wikia.nocookie.net/dubbing9585/images/a/a8/Battle_Angel_Alita_Poster_mid.jpg/revision/latest?cb=20190226031011',
+    status: 'tamamlandi',
+    episodes: [
+      { label: '1. Bölüm', video: 'https://drive.google.com/file/d/1GZCZQO6qrI_39nLe6jPxYBgp5EsCJ-Q7/preview', sub: 'MEGA_LİNKİ', dl: 'MEGA_LİNKİ' },
+      { label: '2. Bölüm', video: 'https://drive.google.com/file/d/1mClncZ85W9Z91lBNlGdXy6q4uCZHkya1/preview', sub: 'MEGA_LİNKİ', dl: 'MEGA_LİNKİ' }
+    ]
+  },
+  {
+    id: 'does-it-count',
+    title: 'Does it Count?',
+    cover: 'https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fimage.tmdb.org%2Ft%2Fp%2Foriginal%2F3gBgvOoYmnImpQ1pPx3u1xryNIn.jpg&f=1&ipt=ff3bf285bb736c6e3f6618857cc416ff48f5aefd1bbaed9b6cf0031b06b1ac7f',
+    status: 'tamamlandi',
+    episodes: [
+      { label: '1. Bölüm', video: 'https://drive.google.com/file/d/1QcQgOeric4k5wZBpi0YcnKbxdA3TDiSh/view?usp=drivesdk', sub: 'MEGA_LİNKİ', dl: 'MEGA_LİNKİ' },
+      { label: '2. Bölüm', video: 'https://drive.google.com/file/d/1zTZxq1kYkFazKkNsS-e8kwZHgU1FAxaW/view?usp=drivesdk', sub: 'MEGA_LİNKİ', dl: 'MEGA_LİNKİ' },
+      { label: '3. Bölüm', video: 'https://drive.google.com/file/d/1avHc5uD7ew_hlzoASFD1xu-G-IQtlp07/view?usp=drivesdk', sub: 'MEGA_LİNKİ', dl: 'MEGA_LİNKİ' },
+      { label: '4. Bölüm', video: 'https://drive.google.com/file/d/1AfxBwMGKN4-JhyRvAyaUg_WD1oFAubfI/view?usp=drivesdk', sub: 'MEGA_LİNKİ', dl: 'MEGA_LİNKİ' },
+      { label: '5. Bölüm', video: 'https://drive.google.com/file/d/1obVLs4ex5H52UlWz5pWf4PXlehtmCtZo/preview', sub: 'MEGA_LİNKİ', dl: 'MEGA_LİNKİ' },
+      { label: '6. Bölüm', video: 'https://drive.google.com/file/d/1I0Yr5T6Krac219ncUQsyD2q_CWzNNsPm/preview', sub: 'MEGA_LİNKİ', dl: 'MEGA_LİNKİ' },
+      { label: '7. Bölüm', video: 'https://drive.google.com/file/d/1x1iiflhMYM0k1uryKXzY02fzQNYiUPcp/preview', sub: 'MEGA_LİNKİ', dl: 'MEGA_LİNKİ' },
+      { label: '8. Bölüm', video: 'https://drive.google.com/file/d/1QcQgOeric4k5wZBpi0YcnKbxdA3TDiSh/preview', sub: 'MEGA_LİNKİ', dl: 'MEGA_LİNKİ' },
+      { label: 'Ova', video: 'https://drive.google.com/file/d/17RHpWKdIntp0oM3bpoiCNkbkjXWahYIL/view?usp=drivesdk', sub: 'MEGA_LİNKİ', dl: 'MEGA_LİNKİ' }
+    ]
+  },
+  {
+    id: 'hakugei',
+    title: 'Hakugei: Legend of the Moby Dick',
+    cover: 'https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fimages.theposterdb.com%2Fprod%2Fpublic%2Fimages%2Fposters%2Foptimized%2Fshows%2F132862%2Fseason_c%2Fqzf0jZGfqXDv3yBMl7arKIFBsnwpj5nUah3o19M2.jpg&f=1&ipt=7e5210152f9b13ed0890a97d3f77fe73487860f6fb7f59bc079cd165476d4425',
+    status: 'askiya-alindi',
+    episodes: [
+      { label: '1. Bölüm', video: 'https://drive.google.com/file/d/1sqGwuAbZcgRf9_a3u-ukh5yDKolWzAH7/preview', sub: 'MEGA_LİNKİ', dl: 'MEGA_LİNKİ' },
+      { label: '2. Bölüm', video: 'https://drive.google.com/file/d/1AiVSYy3Vljm8ALqFCRCuE2Om1ZlULbYo/preview', sub: 'MEGA_LİNKİ', dl: 'MEGA_LİNKİ' },
+      { label: '3. Bölüm', video: 'https://drive.google.com/file/d/1BCFUxL_EZYxhELAYnzlxLCv3uskK_B74/preview', sub: 'MEGA_LİNKİ', dl: 'MEGA_LİNKİ' },
+      { label: '4. Bölüm', video: 'https://drive.google.com/file/d/1DpmQaNdcW2r71ocS20hhGSJTLY4n-tr6/preview', sub: 'MEGA_LİNKİ', dl: 'MEGA_LİNKİ' },
+      { label: '5. Bölüm', video: 'https://drive.google.com/file/d/1ARu_uOlUmkiCpva4TvCuj2fqxnhXXx1Z/preview', sub: 'MEGA_LİNKİ', dl: 'MEGA_LİNKİ' }
+    ]
+  },
+  {
+    id: 'jojo-sbr',
+    title: 'JoJo Steel Ball Run',
+    cover: 'https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fstatic.jojowiki.com%2Fimages%2Fthumb%2F5%2F5b%2Flatest%2F20250412121212%2FSteel_Ball_Run_Anime_Key_Visual.jpg%2F800px-Steel_Ball_Run_Anime_Key_Visual.jpg&f=1&ipt=90621cee1d860fd6b645116e3c2d2ca5e264ef047d61daaacfb55e4b01a30c0b',
+    status: 'devam-ediyor',
+    episodes: [
+      { label: '1. Bölüm', video: 'https://drive.google.com/file/d/15PQB-GTzjTkPc_7jyUiVKtHSpQuCr6H_/preview', sub: 'MEGA_LİNKİ', dl: 'MEGA_LİNKİ' }
+    ]
+  },
+  {
+    id: 'lovely-complex',
+    title: 'Lovely Complex',
+    cover: 'https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Favo-magazine.com%2Fwp-content%2Fuploads%2F2016%2F11%2Flovely_complex.jpg',
+    status: 'devam-ediyor',
+    episodes: [
+      { label: '1. Bölüm', video: 'https://drive.google.com/file/d/13aEqsCUmNE_UURxtAW7EJOWdWUe-rdYt/preview', sub: 'MEGA_LİNKİ', dl: 'MEGA_LİNKİ' },
+      { label: '2. Bölüm', video: 'https://drive.google.com/file/d/1uB9cVv4U994gjgvb1iiP6mtqpM1OxrJc/preview', sub: 'MEGA_LİNKİ', dl: 'MEGA_LİNKİ' },
+      { label: '3. Bölüm', video: 'https://drive.google.com/file/d/1IjYYIFgjGNph5UJ6XZORS8hP4A4ZB6o_/preview', sub: 'MEGA_LİNKİ', dl: 'MEGA_LİNKİ' }
+    ]
+  },
+  {
+    id: 'animatrix',
+    title: 'The Animatrix',
+    cover: 'https://c8.alamy.com/comp/2C85KR4/the-animatrix-video-year-2003-usa-directors-peter-chung-andrew-r-jones-yoshiaki-kawajiri-takeshi-koike-mahiro-maeda-koji-morimoto-shinichiro-watanabe-collection-of-9-animated-short-films-american-poster-2C85KR4.jpg',
+    status: 'tamamlandi',
+    episodes: [
+      { label: '1. Bölüm', video: 'LINK_BURAYA', sub: 'MEGA_LİNKİ', dl: 'MEGA_LİNKİ' },
+      { label: '2. Bölüm', video: 'LINK_BURAYA', sub: 'MEGA_LİNKİ', dl: 'MEGA_LİNKİ' }
+    ]
+  }
+  /* ★ YENİ ANİME BURAYA EKLENİR — virgülü unutma ★ */
+];
+
+/* ── Durum rozeti ── */
+var STATUS_MAP = {
+  'devam-ediyor':  { label: 'Devam Ediyor',  border: 'border-zinc-600', text: 'text-zinc-400' },
+  'tamamlandi':    { label: 'Tamamlandı',     border: 'border-white',    text: 'text-white' },
+  'askiya-alindi': { label: 'Askıya Alındı',  border: 'border-yellow-600', text: 'text-yellow-500' }
+};
+
+/* ── Arşiv grid oluştur (opsiyonel filtre) ── */
+var currentFilter = 'tumu';
+function renderAnimeGrid(filter) {
+  if (filter !== undefined) currentFilter = filter;
+  var grid = document.getElementById('anime-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  var sorted = ANIME_DB.slice().sort(function(a,b){ return a.title.localeCompare(b.title,'tr'); });
+  var filtered = currentFilter === 'tumu' ? sorted : sorted.filter(function(a){ return a.status === currentFilter; });
+  if (filtered.length === 0) {
+    grid.innerHTML = '<p class="text-zinc-600 font-mono text-sm col-span-full py-12 text-center">Bu kategoride henüz anime yok.</p>';
+    return;
+  }
+  filtered.forEach(function(anime) {
+    var st = STATUS_MAP[anime.status] || STATUS_MAP['devam-ediyor'];
+    var div = document.createElement('div');
+    div.className = 'group';
+    div.setAttribute('onclick', "showEpisodes('" + anime.id + "')");
+    div.innerHTML =
+      '<div class="anime-card mb-3">' +
+        '<img src="' + anime.cover + '" alt="' + anime.title + '"/>' +
+        '<div class="anime-card-overlay"><span class="text-white text-xs font-mono">İzle →</span></div>' +
+        '<div class="absolute top-3 left-3 bg-black/80 px-2 py-1 border ' + st.border + '">' +
+          '<span class="' + st.text + ' text-[10px] font-mono uppercase tracking-widest">' + st.label + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<p class="text-white text-sm font-bold text-center">' + anime.title + '</p>';
+    grid.appendChild(div);
+  });
+}
+
+/* ── Filtre sekme işlevi ── */
+function filterGrid(status) {
+  currentFilter = status;
+  // Aktif sekme stilini güncelle
+  document.querySelectorAll('.filter-tab').forEach(function(btn) {
+    btn.classList.remove('bg-purple-500','text-white','border-purple-500');
+    btn.classList.add('border-purple-800','text-purple-400','bg-transparent');
+  });
+  var active = document.getElementById('tab-' + status);
+  if (active) {
+    active.classList.remove('border-purple-800','text-purple-400','bg-transparent');
+    active.classList.add('bg-purple-500','text-white','border-purple-500');
+  }
+  renderAnimeGrid(status);
+}
+
+/* ── Bölüm panellerini oluştur ── */
+function renderEpPanels() {
+  var container = document.getElementById('ep-panels-container');
+  if (!container) return;
+  container.innerHTML = '';
+  ANIME_DB.forEach(function(anime) {
+    var div = document.createElement('div');
+    div.id = 'ep-' + anime.id;
+    div.className = 'ep-panel hidden';
+    var rows = anime.episodes.map(function(ep) {
+      var hasSub   = ep.sub && ep.sub !== 'ALTYAZI_LİNKİ' && ep.sub !== 'MEGA_LİNKİ';
+      var dlUrl    = resolveDownload(ep);
+      var hasDl    = !!dlUrl;
+      var videoUrl = drivePreview(ep.video);
+      // Mega linkleri yeni sekmede açılır
+      var subTarget = hasSub && isMega(ep.sub) ? ' target="_blank"' : '';
+      var dlTarget  = hasDl  && isMega(dlUrl)  ? ' target="_blank"' : '';
+      var subBtn = hasSub
+        ? '<a href="' + ep.sub + '"' + subTarget + ' class="flex items-center justify-center font-mono border border-zinc-600 text-zinc-400 w-8 hover:border-purple-400 hover:text-purple-300 transition-colors" title="Altyazıyı İndir (Mega)" style="text-decoration:none">' +
+            '<span class="material-symbols-outlined" style="font-size:14px">closed_caption</span>' +
+          '</a>'
+        : '<span class="flex items-center justify-center font-mono border border-zinc-800 text-zinc-700 w-8 cursor-not-allowed" title="Altyazı henüz yok">' +
+            '<span class="material-symbols-outlined" style="font-size:14px">closed_caption</span>' +
+          '</span>';
+      var dlBtn = hasDl
+        ? '<a href="' + dlUrl + '"' + dlTarget + ' class="flex items-center justify-center font-mono border border-zinc-600 text-zinc-400 w-8 hover:border-purple-400 hover:text-purple-300 transition-colors" title="Videoyu İndir (Mega)" style="text-decoration:none">' +
+            '<span class="material-symbols-outlined" style="font-size:14px">download</span>' +
+          '</a>'
+        : '<span class="flex items-center justify-center font-mono border border-zinc-800 text-zinc-700 w-8 cursor-not-allowed" title="Video indirme yok">' +
+            '<span class="material-symbols-outlined" style="font-size:14px">download</span>' +
+          '</span>';
+      return '<div class="flex items-stretch gap-1">' +
+        '<button class="ep-btn flex-1" onclick="playVideo(\'' + videoUrl + '\')"><span>' + ep.label + '</span></button>' +
+        dlBtn +
+        subBtn +
+      '</div>';
+    }).join('');
+    div.innerHTML =
+      '<div class="flex items-center gap-3 mb-5 border-b border-zinc-800 pb-4">' +
+        '<button onclick="closeEpisodes()" class="text-zinc-500 hover:text-white font-mono text-xs uppercase tracking-widest bg-transparent border-none cursor-pointer">← Geri</button>' +
+        '<h2 class="text-white font-bold text-lg md:text-xl truncate">' + anime.title + '</h2>' +
+      '</div>' +
+      '<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">' + rows + '</div>';
+    container.appendChild(div);
+  });
+}
+
+/* ── Altyazı filtre sekme işlevi ── */
+var currentSubFilter = 'tumu';
+function filterSubList(status) {
+  currentSubFilter = status;
+  document.querySelectorAll('.sub-filter-tab').forEach(function(btn) {
+    btn.classList.remove('bg-purple-500','text-white','border-purple-500');
+    btn.classList.add('border-purple-800','text-purple-400','bg-transparent');
+  });
+  var active = document.getElementById('subtab-' + status);
+  if (active) {
+    active.classList.remove('border-purple-800','text-purple-400','bg-transparent');
+    active.classList.add('bg-purple-500','text-white','border-purple-500');
+  }
+  renderSubList(status);
+}
+
+/* ── Altyazı listesini oluştur ── */
+function renderSubList(filter) {
+  if (filter !== undefined) currentSubFilter = filter;
+  var list = document.getElementById('sub-list');
+  if (!list) return;
+  list.innerHTML = '';
+  var sorted = ANIME_DB.slice().sort(function(a,b){ return a.title.localeCompare(b.title,'tr'); });
+  var filtered = currentSubFilter === 'tumu' ? sorted : sorted.filter(function(a){ return a.status === currentSubFilter; });
+  if (filtered.length === 0) {
+    list.innerHTML = '<p class="text-zinc-600 font-mono text-sm py-12 text-center">Bu kategoride henüz altyazı yok.</p>';
+    return;
+  }
+  filtered.forEach(function(anime) {
+    var links = anime.episodes.map(function(ep) {
+      return '<a href="' + ep.sub + '" class="sub-dl-link flex items-center justify-between border border-zinc-700 px-4 py-3 hover:border-white transition-colors group">' +
+        '<div class="flex items-center gap-3">' +
+          '<span class="material-symbols-outlined text-zinc-500 group-hover:text-white text-sm transition-colors">download</span>' +
+          '<span class="text-zinc-300 text-sm font-mono">' + ep.label + '</span>' +
+        '</div>' +
+        '<span class="text-[10px] font-mono border border-white text-white px-2 py-0.5 uppercase">ASS</span>' +
+      '</a>';
+    }).join('');
+    var div = document.createElement('div');
+    div.className = 'sub-accordion border-b border-zinc-800';
+    div.innerHTML =
+      '<button class="sub-accordion-btn w-full flex items-center gap-4 py-4 hover:bg-zinc-900/50 transition-colors px-2 rounded" onclick="toggleSub(\'' + anime.id + '\')">' +
+        '<img src="' + anime.cover + '" class="w-12 h-16 object-cover flex-shrink-0" alt="' + anime.title + '"/>' +
+        '<span class="text-white font-bold text-base flex-grow text-left">' + anime.title + '</span>' +
+        '<span class="sub-arrow material-symbols-outlined text-zinc-500 transition-transform duration-300">expand_more</span>' +
+      '</button>' +
+      '<div id="sub-' + anime.id + '" class="sub-panel hidden px-4 pb-5 pt-1 flex flex-col gap-2">' + links + '</div>';
+    list.appendChild(div);
+  });
+}
+</script>
+
+<script>
+var overlay = document.getElementById('page-overlay');
+
+/* ── SAYFA GEÇİŞİ ── */
+function goTo(sayfaId, pushState) {
+  if (pushState !== false) history.pushState({ page: sayfaId }, '', '#' + sayfaId);
+  overlay.classList.add('flash');
+  setTimeout(function() {
+    document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+    var hedef = document.getElementById('page-' + sayfaId);
+    if (hedef) hedef.classList.add('active');
+    if (sayfaId === 'arsiv') { closeEpisodes(false); sortAnimeGrid(); }
+    overlay.classList.remove('flash');
+    window.scrollTo({top:0, behavior:'smooth'});
+    updateNavLinks(sayfaId);
+  }, 200);
+}
+
+/* ── NAV AKTİF LINK ── */
+function updateNavLinks(sayfaId) {
+  document.querySelectorAll('.nav-link').forEach(function(l){ l.classList.remove('text-white','border-b-2','border-white'); l.classList.add('text-zinc-500'); });
+}
+
+/* ── MOBİL MENÜ ── */
+function toggleMobileMenu() {
+  var m = document.getElementById('mobile-menu');
+  m.classList.toggle('open');
+}
+
+/* ── ANİME SIRALAMA (artık renderAnimeGrid zaten sıralar) ── */
+function sortAnimeGrid() { /* noop — renderAnimeGrid A→Z sıralar */ }
+
+/* ── BÖLÜM PANELİ AÇ ── */
+function showEpisodes(animeId, pushState) {
+  if (pushState !== false) history.pushState({ page: 'arsiv', episode: animeId }, '', '#ep-' + animeId);
+  document.getElementById('anime-grid').style.display = 'none';
+  var ft = document.getElementById('filter-tabs'); if(ft) ft.style.display = 'none';
+  document.querySelectorAll('.ep-panel').forEach(function(p){ p.classList.add('hidden'); });
+  closeVideo();
+  var panel = document.getElementById('ep-' + animeId);
+  if (panel) {
+    panel.classList.remove('hidden');
+    var btns = panel.querySelectorAll('.ep-btn');
+    btns.forEach(function(b,i){
+      b.classList.remove('revealed');
+      void b.offsetWidth;
+      setTimeout(function(){ b.classList.add('revealed'); }, i * 70);
+    });
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+}
+
+/* ── BÖLÜM PANELİ KAPAT ── */
+function closeEpisodes(pushState) {
+  document.querySelectorAll('.ep-panel').forEach(function(p){ p.classList.add('hidden'); });
+  var grid = document.getElementById('anime-grid');
+  if (grid) grid.style.display = 'grid';
+  var ft = document.getElementById('filter-tabs'); if(ft) ft.style.display = '';
+  closeVideo();
+  if (pushState !== false) history.pushState({ page: 'arsiv' }, '', '#arsiv');
+}
+
+/* ── VİDEO OYNAT ── */
+function playVideo(url) {
+  if (!url || url === 'LINK_BURAYA') {
+    alert('Bu bölümün videosu henüz eklenmedi.');
+    return;
+  }
+  var player = document.getElementById('video-player');
+  var iframe  = document.getElementById('video-frame');
+  iframe.src = url;
+  player.classList.remove('hidden');
+  void player.offsetWidth;
+  setTimeout(function(){
+    player.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 100);
+}
+
+/* ── VİDEO KAPAT ── */
+function closeVideo() {
+  var player = document.getElementById('video-player');
+  var iframe  = document.getElementById('video-frame');
+  if (player) { player.classList.add('hidden'); }
+  if (iframe)  { iframe.src = ''; }
+}
+
+/* ── RIPPLE EFEKTİ ── */
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('.fill-btn, .ep-btn');
+  if (!btn) return;
+  var r = document.createElement('span');
+  r.classList.add('ripple');
+  var rect = btn.getBoundingClientRect();
+  var size = Math.max(rect.width, rect.height);
+  r.style.width = r.style.height = size + 'px';
+  r.style.left = (e.clientX - rect.left - size/2) + 'px';
+  r.style.top  = (e.clientY - rect.top  - size/2) + 'px';
+  btn.appendChild(r);
+  setTimeout(function(){ r.remove(); }, 600);
+});
+
+/* ── ALTYAZI ACCORDION ── */
+function toggleSub(id) {
+  var panel = document.getElementById('sub-' + id);
+  var btn   = panel.previousElementSibling;
+  var arrow = btn.querySelector('.sub-arrow');
+  var isOpen = !panel.classList.contains('hidden');
+
+  // Önce hepsini kapat
+  document.querySelectorAll('.sub-panel').forEach(function(p){ p.classList.add('hidden'); });
+  document.querySelectorAll('.sub-arrow').forEach(function(a){ a.style.transform = 'rotate(0deg)'; });
+
+  // Kapalıysa aç
+  if (!isOpen) {
+    panel.classList.remove('hidden');
+    arrow.style.transform = 'rotate(180deg)';
+    setTimeout(function(){
+      panel.scrollIntoView({behavior:'smooth', block:'nearest'});
+    }, 50);
+  }
+}
+
+/* ── SAYFA YÜKLENİNCE ── */
+window.onload = function() {
+  renderSiteGlobals();
+  renderAnimeGrid('tumu'); renderEpPanels(); renderSubList();
+  // İlk geçmişe ana sayfa kaydı
+  history.replaceState({ page: 'anasayfa' }, '', '#anasayfa');
+};
+
+/* ── GERİ / İLERİ TUŞU ── */
+window.addEventListener('popstate', function(e) {
+  var state = e.state;
+  if (!state) { goTo('anasayfa', false); return; }
+  if (state.episode) {
+    // Arşiv sayfasını aktif et (geçmişe yazmadan)
+    document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+    var arsiv = document.getElementById('page-arsiv');
+    if (arsiv) arsiv.classList.add('active');
+    showEpisodes(state.episode, false);
+  } else {
+    goTo(state.page || 'anasayfa', false);
+  }
+});
+</script>
+
+<!-- ╔══════════════════════════════════════════════╗
+     ║  ADMİN PANELİ MODAL                         ║
+     ╚══════════════════════════════════════════════╝ -->
+<div id="admin-modal">
+  <div class="admin-box">
+    <!-- KİLİT EKRANI -->
+    <div id="admin-lock">
+      <div class="admin-lock-screen">
+        <span class="material-symbols-outlined text-purple-400" style="font-size:48px">lock</span>
+        <h2 class="font-logo text-2xl text-white tracking-widest">ADMİN GİRİŞİ</h2>
+        <div style="width:100%;max-width:300px">
+          <label class="admin-label">Şifre</label>
+          <input type="password" id="admin-pw" class="admin-input" placeholder="••••••••"
+            onkeydown="if(event.key==='Enter')checkAdminPw()"/>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="admin-btn admin-btn-primary" onclick="checkAdminPw()">Giriş Yap</button>
+          <button class="admin-btn admin-btn-ghost" onclick="closeAdmin()">İptal</button>
+        </div>
+        <p id="admin-pw-err" style="color:#f87171;font-family:monospace;font-size:0.78rem;display:none">Yanlış şifre.</p>
+      </div>
+    </div>
+
+    <!-- ANA PANEL (şifre doğru ise açılır) -->
+    <div id="admin-panel" style="display:none">
+      <div class="flex items-center justify-between mb-6 border-b border-zinc-800 pb-4">
+        <h2 class="font-logo text-2xl text-white tracking-widest">⚙ YÖNETİCİ PANELİ</h2>
+        <button onclick="closeAdmin()" class="admin-btn admin-btn-ghost">✕ Kapat</button>
+      </div>
+
+      <!-- SEKME -->
+      <div style="display:flex;gap:8px;margin-bottom:20px">
+        <button onclick="adminTab('ekle')" id="atab-ekle" class="admin-btn admin-btn-primary">+ Yeni Anime</button>
+        <button onclick="adminTab('liste')" id="atab-liste" class="admin-btn admin-btn-ghost">📋 Mevcut Liste</button>
+      </div>
+
+      <!-- YENİ ANİME EKLE SEKMESİ -->
+      <div id="atab-content-ekle">
+        <div class="admin-section">
+          <div style="margin-bottom:14px">
+            <label class="admin-label">Anime Adı *</label>
+            <input type="text" id="a-title" class="admin-input" placeholder="Örn: Ghost in the Shell"/>
+          </div>
+          <div style="margin-bottom:14px">
+            <label class="admin-label">Kapak Görseli Linki *</label>
+            <input type="url" id="a-cover" class="admin-input" placeholder="https://..."/>
+            <div id="cover-preview" style="margin-top:8px;display:none">
+              <img id="cover-img" src="" style="height:80px;object-fit:cover;border:1px solid #3d2d5c;border-radius:4px"/>
+            </div>
+          </div>
+          <div style="margin-bottom:14px">
+            <label class="admin-label">Durum *</label>
+            <select id="a-status" class="admin-input">
+              <option value="devam-ediyor">Devam Ediyor</option>
+              <option value="tamamlandi">Tamamlandı</option>
+              <option value="askiya-alindi">Askıya Alındı</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- BÖLÜMLER -->
+        <div class="admin-section">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <span class="admin-label" style="margin:0">Bölümler</span>
+            <button onclick="addEpRow()" class="admin-btn admin-btn-ghost" style="padding:6px 12px;font-size:0.72rem">+ Bölüm Ekle</button>
+          </div>
+          <div id="ep-rows"></div>
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button onclick="saveNewAnime()" class="admin-btn admin-btn-primary">💾 Kaydet &amp; Uygula</button>
+          <button onclick="resetAdminForm()" class="admin-btn admin-btn-ghost">Temizle</button>
+        </div>
+      </div>
+
+      <!-- MEVCUT LİSTE SEKMESİ -->
+      <div id="atab-content-liste" style="display:none">
+        <p class="admin-label" style="margin-bottom:12px">Mevcut animeler (tıkla → bölüm ekle/sil)</p>
+        <div id="admin-anime-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST BİLDİRİM -->
+<div id="admin-toast" class="admin-toast"></div>
+
+<script>
+/* ══════════════════════════════════════════
+   ADMİN PANELİ — tüm mantık burada
+   Şifre: sadece yerel, hiçbir yere gönderilmiyor
+   ══════════════════════════════════════════ */
+
+/* ── Şifre (değiştirmek istersen buradan değiştir) ── */
+var ADMIN_PW_HASH = '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8'; // "password" SHA-256'sı
+/* Kendi şifreni koymak için:
+   1. Tarayıcı konsolunu aç
+   2. Yaz: crypto.subtle.digest('SHA-256', new TextEncoder().encode('yenisifre')).then(b=>console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
+   3. Çıkan hash'i yukarıya koy */
+
+var adminUnlocked = false;
+var epRowCount = 0;
+
+async function sha256(str) {
+  var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+
+function openAdmin() {
+  document.getElementById('admin-modal').classList.add('open');
+  if (!adminUnlocked) {
+    document.getElementById('admin-lock').style.display = '';
+    document.getElementById('admin-panel').style.display = 'none';
+    setTimeout(function(){ document.getElementById('admin-pw').focus(); }, 100);
+  }
+}
+
+function closeAdmin() {
+  document.getElementById('admin-modal').classList.remove('open');
+}
+
+async function checkAdminPw() {
+  var pw = document.getElementById('admin-pw').value;
+  var err = document.getElementById('admin-pw-err');
+  var inp = document.getElementById('admin-pw');
+  var hash = await sha256(pw);
+  if (hash === ADMIN_PW_HASH) {
+    adminUnlocked = true;
+    inp.classList.remove('error');
+    err.style.display = 'none';
+    document.getElementById('admin-lock').style.display = 'none';
+    document.getElementById('admin-panel').style.display = '';
+    adminTab('ekle');
+    resetAdminForm();
+    addEpRow();
+  } else {
+    inp.classList.add('error');
+    err.style.display = '';
+    inp.value = '';
+    inp.focus();
+  }
+}
+
+function adminTab(tab) {
+  document.getElementById('atab-content-ekle').style.display  = tab === 'ekle'  ? '' : 'none';
+  document.getElementById('atab-content-liste').style.display = tab === 'liste' ? '' : 'none';
+  document.getElementById('atab-ekle').className  = 'admin-btn ' + (tab==='ekle'  ? 'admin-btn-primary' : 'admin-btn-ghost');
+  document.getElementById('atab-liste').className = 'admin-btn ' + (tab==='liste' ? 'admin-btn-primary' : 'admin-btn-ghost');
+  if (tab === 'liste') renderAdminList();
+}
+
+/* ── Bölüm satırı ekle ── */
+function addEpRow(label, video, sub, dl) {
+  var c = ++epRowCount;
+  var div = document.createElement('div');
+  div.className = 'ep-block';
+  div.id = 'eprow-' + c;
+  div.innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+      '<span class="admin-label" style="margin:0">Bölüm ' + c + '</span>' +
+      '<button onclick="document.getElementById(\'eprow-'+c+'\').remove()" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.8rem;font-family:monospace">sil ✕</button>' +
+    '</div>' +
+    '<div class="ep-input-row">' +
+      '<div><label class="admin-label">Etiket</label>' +
+        '<input type="text" class="admin-input ep-label" placeholder="1. Bölüm" value="' + (label||c+'. Bölüm') + '"/></div>' +
+      '<div><label class="admin-label">Video Linki (Drive)</label>' +
+        '<input type="url" class="admin-input ep-video" placeholder="https://drive.google.com/..." value="' + (video||'') + '"/></div>' +
+      '<div><label class="admin-label">Altyazı Linki (Mega)</label>' +
+        '<input type="url" class="admin-input ep-sub" placeholder="https://mega.nz/..." value="' + (sub||'') + '"/></div>' +
+    '</div>' +
+    '<div><label class="admin-label">İndirme Linki (boş bırakırsan Drive\'dan üretilir)</label>' +
+      '<input type="url" class="admin-input ep-dl" placeholder="https://mega.nz/..." value="' + (dl||'') + '"/></div>';
+  document.getElementById('ep-rows').appendChild(div);
+}
+
+/* ── Kapak önizleme ── */
+document.addEventListener('input', function(e) {
+  if (e.target && e.target.id === 'a-cover') {
+    var val = e.target.value.trim();
+    var wrap = document.getElementById('cover-preview');
+    var img  = document.getElementById('cover-img');
+    if (val.startsWith('http')) {
+      img.src = val; wrap.style.display = '';
+    } else {
+      wrap.style.display = 'none';
+    }
+  }
+});
+
+/* ── Formu temizle ── */
+function resetAdminForm() {
+  document.getElementById('a-title').value = '';
+  document.getElementById('a-cover').value = '';
+  document.getElementById('a-status').value = 'devam-ediyor';
+  document.getElementById('ep-rows').innerHTML = '';
+  document.getElementById('cover-preview').style.display = 'none';
+  epRowCount = 0;
+}
+
+/* ── Anime ID üret ── */
+function toId(str) {
+  return str.toLowerCase()
+    .replace(/[çÇ]/g,'c').replace(/[ğĞ]/g,'g').replace(/[ıİ]/g,'i')
+    .replace(/[öÖ]/g,'o').replace(/[şŞ]/g,'s').replace(/[üÜ]/g,'u')
+    .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+}
+
+/* ── Toast göster ── */
+function adminToast(msg, color) {
+  var t = document.getElementById('admin-toast');
+  t.textContent = msg;
+  t.style.background = color || '#c4a8ff';
+  t.style.color = color ? '#fff' : '#1a0d33';
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2800);
+}
+
+/* ── Yeni anime kaydet ── */
+function saveNewAnime() {
+  var title  = document.getElementById('a-title').value.trim();
+  var cover  = document.getElementById('a-cover').value.trim();
+  var status = document.getElementById('a-status').value;
+
+  if (!title) { document.getElementById('a-title').classList.add('error'); document.getElementById('a-title').focus(); return; }
+  if (!cover) { document.getElementById('a-cover').classList.add('error'); document.getElementById('a-cover').focus(); return; }
+  document.getElementById('a-title').classList.remove('error');
+  document.getElementById('a-cover').classList.remove('error');
+
+  var epBlocks = document.querySelectorAll('#ep-rows .ep-block');
+  var episodes = [];
+  epBlocks.forEach(function(block) {
+    var label = block.querySelector('.ep-label').value.trim() || (episodes.length+1)+'. Bölüm';
+    var video = block.querySelector('.ep-video').value.trim() || 'LINK_BURAYA';
+    var sub   = block.querySelector('.ep-sub').value.trim()   || 'MEGA_LİNKİ';
+    var dl    = block.querySelector('.ep-dl').value.trim()    || 'MEGA_LİNKİ';
+    episodes.push({ label:label, video:video, sub:sub, dl:dl });
+  });
+
+  if (episodes.length === 0) {
+    adminToast('En az 1 bölüm ekle!', '#f87171'); return;
+  }
+
+  var id = toId(title);
+  /* ID çakışmasını önle */
+  var exists = ANIME_DB.some(function(a){ return a.id === id; });
+  if (exists) id = id + '-' + Date.now().toString(36);
+
+  ANIME_DB.push({ id:id, title:title, cover:cover, status:status, episodes:episodes });
+
+  /* Sayfaları yenile */
+  renderAnimeGrid(currentFilter);
+  renderEpPanels();
+  renderSubList(currentSubFilter);
+
+  adminToast('✓ "' + title + '" eklendi!');
+  resetAdminForm();
+  addEpRow();
+}
+
+/* ── Mevcut liste render ── */
+function renderAdminList() {
+  var c = document.getElementById('admin-anime-list');
+  if (!c) return;
+  c.innerHTML = '';
+  if (ANIME_DB.length === 0) {
+    c.innerHTML = '<p style="color:#5b3d8a;font-family:monospace;font-size:0.8rem">Henüz anime yok.</p>'; return;
+  }
+  ANIME_DB.slice().sort(function(a,b){ return a.title.localeCompare(b.title,'tr'); }).forEach(function(anime) {
+    var div = document.createElement('div');
+    div.className = 'admin-section';
+    div.style.marginBottom = '10px';
+    var statusColors = { 'devam-ediyor':'#9b7fd4', 'tamamlandi':'#c4a8ff', 'askiya-alindi':'#fbbf24' };
+    div.innerHTML =
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">' +
+        '<img src="' + anime.cover + '" style="width:36px;height:52px;object-fit:cover;border:1px solid #3d2d5c;flex-shrink:0"/>' +
+        '<div style="flex:1">' +
+          '<div style="color:#e8e0f0;font-weight:700;font-size:0.9rem">' + anime.title + '</div>' +
+          '<div style="font-family:monospace;font-size:0.7rem;color:' + (statusColors[anime.status]||'#b8a8d4') + '">' + anime.status + ' · ' + anime.episodes.length + ' bölüm</div>' +
+        '</div>' +
+        '<button onclick="deleteAnime(\'' + anime.id + '\')" class="admin-btn admin-btn-danger" style="padding:6px 10px;font-size:0.7rem;flex-shrink:0">Sil</button>' +
+      '</div>' +
+      '<details style="font-family:monospace;font-size:0.72rem">' +
+        '<summary style="cursor:pointer;color:#b8a8d4;margin-bottom:6px">Bölümleri göster (' + anime.episodes.length + ')</summary>' +
+        anime.episodes.map(function(ep, i){
+          return '<div style="padding:6px 0;border-top:1px solid #3d2d5c;color:#b8a8d4;display:flex;justify-content:space-between;align-items:center">' +
+            '<span>' + ep.label + '</span>' +
+            '<button onclick="deleteEpisode(\'' + anime.id + '\',' + i + ')" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.72rem;font-family:monospace">sil</button>' +
+          '</div>';
+        }).join('') +
+        '<div style="margin-top:8px"><button onclick="quickAddEp(\'' + anime.id + '\')" class="admin-btn admin-btn-ghost" style="padding:5px 10px;font-size:0.7rem;width:100%">+ Bu Animeye Bölüm Ekle</button></div>' +
+      '</details>';
+    c.appendChild(div);
+  });
+}
+
+/* ── Anime sil ── */
+function deleteAnime(id) {
+  if (!confirm('Bu animeyi silmek istediğine emin misin?')) return;
+  ANIME_DB = ANIME_DB.filter(function(a){ return a.id !== id; });
+  renderAnimeGrid(currentFilter);
+  renderEpPanels();
+  renderSubList(currentSubFilter);
+  renderAdminList();
+  adminToast('Anime silindi.');
+}
+
+/* ── Bölüm sil ── */
+function deleteEpisode(animeId, idx) {
+  var anime = ANIME_DB.find(function(a){ return a.id === animeId; });
+  if (!anime) return;
+  anime.episodes.splice(idx, 1);
+  renderAnimeGrid(currentFilter);
+  renderEpPanels();
+  renderSubList(currentSubFilter);
+  renderAdminList();
+  adminToast('Bölüm silindi.');
+}
+
+/* ── Hızlı bölüm ekle (mevcut anime) ── */
+function quickAddEp(animeId) {
+  var anime = ANIME_DB.find(function(a){ return a.id === animeId; });
+  if (!anime) return;
+  var label = prompt('Bölüm etiketi:', (anime.episodes.length+1) + '. Bölüm');
+  if (!label) return;
+  var video = prompt('Video linki (Drive):') || 'LINK_BURAYA';
+  var sub   = prompt('Altyazı linki (Mega):') || 'MEGA_LİNKİ';
+  var dl    = prompt('İndirme linki (boş = Drive\'dan otomatik):') || '';
+  anime.episodes.push({ label:label, video:video, sub:sub, dl:dl||'MEGA_LİNKİ' });
+  renderAnimeGrid(currentFilter);
+  renderEpPanels();
+  renderSubList(currentSubFilter);
+  renderAdminList();
+  adminToast('✓ Bölüm eklendi!');
+}
+
+/* Admin şifresini değiştirme talimatı: Konsolda çalıştır:
+   crypto.subtle.digest('SHA-256',new TextEncoder().encode('yenisifren'))
+   .then(b=>console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
+   Çıkan string'i ADMIN_PW_HASH'e koy. */
+</script>
+
+</body>
+</html>
