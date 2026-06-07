@@ -2,7 +2,7 @@
 <html class="dark" lang="tr">
 <head>
 <meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0" name="viewport"/>
 <title>AlitaSubs</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Permanent+Marker&display=swap" rel="stylesheet"/>
@@ -214,6 +214,7 @@ tailwind.config = {
   #admin-modal {
     display:none; position:fixed; inset:0; z-index:10000;
     background:rgba(0,0,0,0.95); overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
   }
   #admin-modal.open { display:flex; align-items:flex-start; justify-content:center; padding:20px; }
   .admin-box {
@@ -224,7 +225,7 @@ tailwind.config = {
   .admin-input {
     width:100% !important; background:#17122a !important; border:1px solid #3d2d5c !important;
     color:#e8e0f0 !important; padding:10px 14px !important; font-family:monospace !important;
-    font-size:0.85rem !important; border-radius:4px !important; outline:none !important;
+    font-size:16px !important; border-radius:4px !important; outline:none !important;
     box-sizing:border-box !important; transition: border-color 0.2s !important;
     -webkit-appearance:none !important; appearance:none !important;
   }
@@ -1402,7 +1403,17 @@ window.addEventListener('popstate', function(e) {
 <div id="admin-toast" class="admin-toast"></div>
 
 <script>
+/* ══════════════════════════════════════════════════════
+   ADMİN PANELİ — localStorage + Şifre + Düzenleme
+   ══════════════════════════════════════════════════════ */
+
+/* ── Admin şifresi SHA-256 hash olarak saklanır ── */
 var ADMIN_PW_HASH = '42bf6b2687c6938e2855aa39be00f5c1f3f28e5e1fa991141bd469280980b986';
+/* Şifreni değiştirmek için:
+   1. Tarayıcı konsolunu aç (F12)
+   2. Yaz: crypto.subtle.digest('SHA-256',new TextEncoder().encode('yenisifren')).then(b=>console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
+   3. Çıkan hash'i ADMIN_PW_HASH değerine koy */
+
 var adminUnlocked = false;
 var epRowCount    = 0;
 var editEpRowCount = 0;
