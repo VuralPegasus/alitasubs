@@ -1215,23 +1215,36 @@ window.addEventListener('popstate', function(e) {
       <!-- GITHUB SYNC SEKMESİ -->
       <div id="atab-content-sync" style="display:none">
         <div class="admin-section">
-          <div style="margin-bottom:14px">
-            <label class="admin-label">GitHub Sync Rehberi</label>
-            <p style="color:#b8a8d4;font-family:monospace;font-size:0.8rem;line-height:1.5;margin:0">
-              1. Aşağıdaki komutu bilgisayarınızda çalıştırın:<br/>
-              <code style="background:#17122a;padding:8px;border-radius:4px;display:block;margin:8px 0;overflow-x:auto">python update_anime.py --token YOUR_GITHUB_TOKEN</code>
-              2. Token'ı GitHub Settings → Developer settings → Personal access tokens (Classic) → Generate new token'dan alın<br/>
-              3. Script, localstorage'deki tüm verileri GitHub'daki site.html'e yazacak<br/>
-              4. Ardından GitHub'dan otomatik pull edilecek
+          <div style="margin-bottom:20px">
+            <label class="admin-label" style="color:#c4a8ff;font-size:0.85rem">1. Adım — JSON'u İndir</label>
+            <p style="color:#b8a8d4;font-family:monospace;font-size:0.78rem;line-height:1.6;margin:0 0 12px 0">
+              Tüm anime verilerini <code style="background:#17122a;padding:2px 6px;border-radius:3px">anime_db.json</code> olarak indir.
             </p>
+            <button onclick="downloadAnimeJson()" class="admin-btn admin-btn-primary" style="width:100%;padding:12px">
+              ⬇ anime_db.json İndir
+            </button>
           </div>
-          <div style="margin-bottom:14px">
-            <label class="admin-label">Manuel GitHub Yazma</label>
-            <p style="color:#b8a8d4;font-family:monospace;font-size:0.78rem;line-height:1.5;margin:0;margin-bottom:10px">
-              Aşağıdaki ANIME_DB verisini kopyala, repo'da site.html'i düzenle ve ilgili satırları değiştir:
+
+          <div style="margin-bottom:20px;border-top:1px solid #3d2d5c;padding-top:20px">
+            <label class="admin-label" style="color:#c4a8ff;font-size:0.85rem">2. Adım — Script'i Çalıştır</label>
+            <p style="color:#b8a8d4;font-family:monospace;font-size:0.78rem;line-height:1.6;margin:0 0 8px 0">
+              İndirilen JSON'u script'e ver:
             </p>
-            <textarea id="github-export" class="admin-input" style="height:200px;font-size:0.75rem;font-family:monospace" readonly></textarea>
-            <button onclick="copyToClipboard('github-export')" class="admin-btn admin-btn-primary" style="margin-top:8px;width:100%">📋 Kopyala</button>
+            <code style="background:#17122a;padding:10px 14px;border-radius:4px;display:block;font-size:0.78rem;color:#c4a8ff;overflow-x:auto;white-space:nowrap">
+              python update_anime.py --token TOKEN --anime-json anime_db.json
+            </code>
+            <button onclick="copyText('python update_anime.py --token TOKEN --anime-json anime_db.json')" class="admin-btn admin-btn-ghost" style="margin-top:8px;width:100%;font-size:0.72rem">
+              📋 Komutu Kopyala
+            </button>
+          </div>
+
+          <div style="border-top:1px solid #3d2d5c;padding-top:20px">
+            <label class="admin-label" style="color:#c4a8ff;font-size:0.85rem">Manuel — ANIME_DB Kodu</label>
+            <p style="color:#b8a8d4;font-family:monospace;font-size:0.78rem;line-height:1.5;margin:0 0 10px 0">
+              Doğrudan HTML'e yapıştırmak istersen:
+            </p>
+            <textarea id="github-export" class="admin-input" style="height:160px;font-size:0.72rem;font-family:monospace" readonly></textarea>
+            <button onclick="copyToClipboard('github-export')" class="admin-btn admin-btn-ghost" style="margin-top:8px;width:100%;font-size:0.72rem">📋 Kopyala</button>
           </div>
         </div>
       </div>
@@ -1248,7 +1261,7 @@ window.addEventListener('popstate', function(e) {
    ══════════════════════════════════════════════════════ */
 
 /* ── Varsayılan şifre (SHA-256): "admin123" ── */
-var ADMIN_PW_HASH = '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9';
+var ADMIN_PW_HASH = '42bf6b2687c6938e2855aa39be00f5c1f3f28e5e1fa991141bd469280980b986';
 /* Şifreni değiştirmek için:
    1. Tarayıcı konsolunu aç (F12)
    2. Yaz: crypto.subtle.digest('SHA-256',new TextEncoder().encode('yenisifren')).then(b=>console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
@@ -1668,6 +1681,35 @@ function renderAdminList() {
 function generateGithubExport() {
   var code = 'var ANIME_DB = ' + JSON.stringify(ANIME_DB, null, 2) + ';';
   document.getElementById('github-export').value = code;
+}
+
+function downloadAnimeJson() {
+  var data = JSON.stringify(ANIME_DB, null, 2);
+  var blob = new Blob([data], { type: 'application/json' });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'anime_db.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  adminToast('✓ anime_db.json indirildi!');
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(function() {
+    adminToast('✓ Kopyalandı!');
+  }).catch(function() {
+    /* Fallback */
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    adminToast('✓ Kopyalandı!');
+  });
 }
 
 function copyToClipboard(id) {
