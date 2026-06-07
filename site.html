@@ -231,7 +231,7 @@ tailwind.config = {
   .admin-input.error { border-color:#f87171; }
   .admin-label {
     font-family:monospace; font-size:0.72rem; text-transform:uppercase;
-    letter-spacing:0.1em; color:#b8a8d4; margin-bottom:5px; display:block;
+    letter-spacing:0.1em; color:#e8e0f0; margin-bottom:5px; display:block;
   }
   .admin-section {
     border:1px solid #3d2d5c; border-radius:4px; padding:16px; margin-bottom:16px;
@@ -250,7 +250,7 @@ tailwind.config = {
   .admin-btn:active { opacity:0.7; }
   .admin-btn-primary { background:#c4a8ff; color:#1a0d33; }
   .admin-btn-danger  { background:transparent; color:#f87171; border:1px solid #f87171; }
-  .admin-btn-ghost   { background:transparent; color:#b8a8d4; border:1px solid #3d2d5c; }
+  .admin-btn-ghost   { background:transparent; color:#e8e0f0; border:1px solid #3d2d5c; }
   .admin-toast {
     position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
     background:#c4a8ff; color:#1a0d33; font-family:monospace; font-weight:700;
@@ -1051,12 +1051,20 @@ function toggleSub(id) {
   }
 }
 
-/* ── SAYFA YÜKLENİNCE ── */
+/* ── Sayfa yüklenince ── */
 window.onload = function() {
+  /* localStorage'den eklenmiş anime'leri yükle */
+  loadFromLocalStorage();
+  
   renderSiteGlobals();
-  renderAnimeGrid('tumu'); renderEpPanels(); renderSubList();
-  // İlk geçmişe ana sayfa kaydı
+  renderAnimeGrid('tumu'); 
+  renderEpPanels(); 
+  renderSubList();
+  
+  /* İlk geçmişe ana sayfa kaydı */
   history.replaceState({ page: 'anasayfa' }, '', '#anasayfa');
+  /* window.addEventListener('load') ile çakışmayı önle */
+  window._mainLoaded = true;
 };
 
 /* ── GERİ / İLERİ TUŞU ── */
@@ -1080,7 +1088,7 @@ window.addEventListener('popstate', function(e) {
      ╚══════════════════════════════════════════════╝ -->
 <div id="admin-modal">
   <div class="admin-box">
-    <!-- KİLİT EKRANI -->
+    <!-- KİLİT EKRANI (Şifre) -->
     <div id="admin-lock">
       <div class="admin-lock-screen">
         <span class="material-symbols-outlined text-purple-400" style="font-size:48px">lock</span>
@@ -1094,7 +1102,7 @@ window.addEventListener('popstate', function(e) {
           <button class="admin-btn admin-btn-primary" onclick="checkAdminPw()">Giriş Yap</button>
           <button class="admin-btn admin-btn-ghost" onclick="closeAdmin()">İptal</button>
         </div>
-        <p id="admin-pw-err" style="color:#f87171;font-family:monospace;font-size:0.78rem;display:none">Yanlış şifre.</p>
+        <p id="admin-pw-err" style="color:#f87171;font-family:monospace;font-size:0.78rem;display:none;margin-top:10px">Yanlış şifre.</p>
       </div>
     </div>
 
@@ -1106,9 +1114,11 @@ window.addEventListener('popstate', function(e) {
       </div>
 
       <!-- SEKME -->
-      <div style="display:flex;gap:8px;margin-bottom:20px">
-        <button onclick="adminTab('ekle')" id="atab-ekle" class="admin-btn admin-btn-primary">+ Yeni Anime</button>
-        <button onclick="adminTab('liste')" id="atab-liste" class="admin-btn admin-btn-ghost">📋 Mevcut Liste</button>
+      <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
+        <button onclick="adminTab('ekle')"   id="atab-ekle"   class="admin-btn admin-btn-primary">+ Yeni Anime</button>
+        <button onclick="adminTab('duzenle')" id="atab-duzenle" class="admin-btn admin-btn-ghost">✏ Düzenle</button>
+        <button onclick="adminTab('liste')"  id="atab-liste"  class="admin-btn admin-btn-ghost">📋 Liste</button>
+        <button onclick="adminTab('sync')"   id="atab-sync"   class="admin-btn admin-btn-ghost">☁ GitHub Sync</button>
       </div>
 
       <!-- YENİ ANİME EKLE SEKMESİ -->
@@ -1134,8 +1144,6 @@ window.addEventListener('popstate', function(e) {
             </select>
           </div>
         </div>
-
-        <!-- BÖLÜMLER -->
         <div class="admin-section">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
             <span class="admin-label" style="margin:0">Bölümler</span>
@@ -1143,17 +1151,89 @@ window.addEventListener('popstate', function(e) {
           </div>
           <div id="ep-rows"></div>
         </div>
-
         <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button onclick="saveNewAnime()" class="admin-btn admin-btn-primary">💾 Kaydet &amp; Uygula</button>
+          <button onclick="saveNewAnime()" class="admin-btn admin-btn-primary">💾 Kaydet</button>
           <button onclick="resetAdminForm()" class="admin-btn admin-btn-ghost">Temizle</button>
+        </div>
+        <p style="color:#b8a8d4;font-family:monospace;font-size:0.75rem;margin-top:12px">💡 Anime localstorage'e kaydediliyor. GitHub'a yazmak için "GitHub Sync" sekmesini kullan.</p>
+      </div>
+
+      <!-- DÜZENLE SEKMESİ -->
+      <div id="atab-content-duzenle" style="display:none">
+        <!-- anime seçim listesi -->
+        <div id="edit-anime-picker" style="display:block">
+          <p class="admin-label" style="margin-bottom:12px;color:#c4a8ff">Düzenlemek istediğin animeyi seç:</p>
+          <div id="edit-picker-list"></div>
+        </div>
+        <!-- edit formu (başta gizli) -->
+        <div id="edit-anime-form" style="display:none">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+            <button onclick="backToEditPicker()" class="admin-btn admin-btn-ghost" style="padding:6px 12px;font-size:0.72rem">← Geri</button>
+            <span id="edit-form-title" class="admin-label" style="margin:0;font-size:0.9rem;color:#c4a8ff"></span>
+          </div>
+          <div class="admin-section">
+            <div style="margin-bottom:14px">
+              <label class="admin-label">Anime Adı *</label>
+              <input type="text" id="edit-title" class="admin-input"/>
+            </div>
+            <div style="margin-bottom:14px">
+              <label class="admin-label">Kapak Görseli Linki *</label>
+              <input type="url" id="edit-cover" class="admin-input"/>
+              <div id="edit-cover-preview" style="margin-top:8px;display:none">
+                <img id="edit-cover-img" src="" style="height:80px;object-fit:cover;border:1px solid #3d2d5c;border-radius:4px"/>
+              </div>
+            </div>
+            <div>
+              <label class="admin-label">Durum *</label>
+              <select id="edit-status" class="admin-input">
+                <option value="devam-ediyor">Devam Ediyor</option>
+                <option value="tamamlandi">Tamamlandı</option>
+                <option value="askiya-alindi">Askıya Alındı</option>
+              </select>
+            </div>
+          </div>
+          <div class="admin-section">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+              <span class="admin-label" style="margin:0">Bölümler</span>
+              <button onclick="addEditEpRow()" class="admin-btn admin-btn-ghost" style="padding:6px 12px;font-size:0.72rem">+ Bölüm Ekle</button>
+            </div>
+            <div id="edit-ep-rows"></div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button onclick="saveEditedAnime()" class="admin-btn admin-btn-primary">💾 Değişiklikleri Kaydet</button>
+            <button onclick="deleteEditingAnime()" class="admin-btn admin-btn-danger">🗑 Animeyi Sil</button>
+          </div>
         </div>
       </div>
 
       <!-- MEVCUT LİSTE SEKMESİ -->
       <div id="atab-content-liste" style="display:none">
-        <p class="admin-label" style="margin-bottom:12px">Mevcut animeler (tıkla → bölüm ekle/sil)</p>
+        <p class="admin-label" style="margin-bottom:12px">Tüm animeler (hardcoded + localstorage)</p>
         <div id="admin-anime-list"></div>
+      </div>
+
+      <!-- GITHUB SYNC SEKMESİ -->
+      <div id="atab-content-sync" style="display:none">
+        <div class="admin-section">
+          <div style="margin-bottom:14px">
+            <label class="admin-label">GitHub Sync Rehberi</label>
+            <p style="color:#b8a8d4;font-family:monospace;font-size:0.8rem;line-height:1.5;margin:0">
+              1. Aşağıdaki komutu bilgisayarınızda çalıştırın:<br/>
+              <code style="background:#17122a;padding:8px;border-radius:4px;display:block;margin:8px 0;overflow-x:auto">python update_anime.py --token YOUR_GITHUB_TOKEN</code>
+              2. Token'ı GitHub Settings → Developer settings → Personal access tokens (Classic) → Generate new token'dan alın<br/>
+              3. Script, localstorage'deki tüm verileri GitHub'daki site.html'e yazacak<br/>
+              4. Ardından GitHub'dan otomatik pull edilecek
+            </p>
+          </div>
+          <div style="margin-bottom:14px">
+            <label class="admin-label">Manuel GitHub Yazma</label>
+            <p style="color:#b8a8d4;font-family:monospace;font-size:0.78rem;line-height:1.5;margin:0;margin-bottom:10px">
+              Aşağıdaki ANIME_DB verisini kopyala, repo'da site.html'i düzenle ve ilgili satırları değiştir:
+            </p>
+            <textarea id="github-export" class="admin-input" style="height:200px;font-size:0.75rem;font-family:monospace" readonly></textarea>
+            <button onclick="copyToClipboard('github-export')" class="admin-btn admin-btn-primary" style="margin-top:8px;width:100%">📋 Kopyala</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1163,32 +1243,62 @@ window.addEventListener('popstate', function(e) {
 <div id="admin-toast" class="admin-toast"></div>
 
 <script>
-/* ══════════════════════════════════════════
-   ADMİN PANELİ — tüm mantık burada
-   Şifre: sadece yerel, hiçbir yere gönderilmiyor
-   ══════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   ADMİN PANELİ — localStorage + Şifre + Düzenleme
+   ══════════════════════════════════════════════════════ */
 
-/* ── Şifre (değiştirmek istersen buradan değiştir) ── */
-var ADMIN_PW_HASH = '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8'; // "password" SHA-256'sı
-/* Kendi şifreni koymak için:
-   1. Tarayıcı konsolunu aç
-   2. Yaz: crypto.subtle.digest('SHA-256', new TextEncoder().encode('yenisifre')).then(b=>console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
-   3. Çıkan hash'i yukarıya koy */
+/* ── Varsayılan şifre (SHA-256): "admin123" ── */
+var ADMIN_PW_HASH = '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9';
+/* Şifreni değiştirmek için:
+   1. Tarayıcı konsolunu aç (F12)
+   2. Yaz: crypto.subtle.digest('SHA-256',new TextEncoder().encode('yenisifren')).then(b=>console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
+   3. Çıkan hash'i ADMIN_PW_HASH değerine koy */
 
 var adminUnlocked = false;
-var epRowCount = 0;
+var epRowCount    = 0;
+var editEpRowCount = 0;
 
+/* Şu an düzenlenen anime'nin ID'si ve kaynağı */
+var editingAnimeId  = null;
+var editingAnimeSource = null; /* 'hardcoded' | 'local' */
+
+/* ─────────────────────────────────────────────
+   YARDIMCI
+───────────────────────────────────────────── */
 async function sha256(str) {
   var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(x=>x.toString(16).padStart(2,'0')).join('');
+  return Array.from(new Uint8Array(buf)).map(x => x.toString(16).padStart(2,'0')).join('');
 }
 
+function toId(str) {
+  return str.toLowerCase()
+    .replace(/[çÇ]/g,'c').replace(/[ğĞ]/g,'g').replace(/[ıİ]/g,'i')
+    .replace(/[öÖ]/g,'o').replace(/[şŞ]/g,'s').replace(/[üÜ]/g,'u')
+    .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+}
+
+function adminToast(msg, color) {
+  var t = document.getElementById('admin-toast');
+  t.textContent = msg;
+  t.style.background = color || '#c4a8ff';
+  t.style.color = color ? '#fff' : '#1a0d33';
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2800);
+}
+
+/* ─────────────────────────────────────────────
+   AÇMA / KAPAMA
+───────────────────────────────────────────── */
 function openAdmin() {
   document.getElementById('admin-modal').classList.add('open');
   if (!adminUnlocked) {
     document.getElementById('admin-lock').style.display = '';
     document.getElementById('admin-panel').style.display = 'none';
     setTimeout(function(){ document.getElementById('admin-pw').focus(); }, 100);
+  } else {
+    document.getElementById('admin-lock').style.display = 'none';
+    document.getElementById('admin-panel').style.display = '';
+    adminTab('ekle');
   }
 }
 
@@ -1197,7 +1307,7 @@ function closeAdmin() {
 }
 
 async function checkAdminPw() {
-  var pw = document.getElementById('admin-pw').value;
+  var pw  = document.getElementById('admin-pw').value;
   var err = document.getElementById('admin-pw-err');
   var inp = document.getElementById('admin-pw');
   var hash = await sha256(pw);
@@ -1205,7 +1315,7 @@ async function checkAdminPw() {
     adminUnlocked = true;
     inp.classList.remove('error');
     err.style.display = 'none';
-    document.getElementById('admin-lock').style.display = 'none';
+    document.getElementById('admin-lock').style.display  = 'none';
     document.getElementById('admin-panel').style.display = '';
     adminTab('ekle');
     resetAdminForm();
@@ -1218,53 +1328,84 @@ async function checkAdminPw() {
   }
 }
 
+/* ─────────────────────────────────────────────
+   SEKME YÖNETİMİ
+───────────────────────────────────────────── */
 function adminTab(tab) {
-  document.getElementById('atab-content-ekle').style.display  = tab === 'ekle'  ? '' : 'none';
-  document.getElementById('atab-content-liste').style.display = tab === 'liste' ? '' : 'none';
-  document.getElementById('atab-ekle').className  = 'admin-btn ' + (tab==='ekle'  ? 'admin-btn-primary' : 'admin-btn-ghost');
-  document.getElementById('atab-liste').className = 'admin-btn ' + (tab==='liste' ? 'admin-btn-primary' : 'admin-btn-ghost');
-  if (tab === 'liste') renderAdminList();
+  ['ekle','duzenle','liste','sync'].forEach(function(t) {
+    document.getElementById('atab-content-' + t).style.display = (t === tab) ? '' : 'none';
+    document.getElementById('atab-' + t).className =
+      'admin-btn ' + (t === tab ? 'admin-btn-primary' : 'admin-btn-ghost');
+  });
+  if (tab === 'liste')   renderAdminList();
+  if (tab === 'sync')    generateGithubExport();
+  if (tab === 'duzenle') renderEditPicker();
 }
 
-/* ── Bölüm satırı ekle ── */
+/* ─────────────────────────────────────────────
+   YENİ ANİME EKLEME
+───────────────────────────────────────────── */
 function addEpRow(label, video, sub, dl) {
   var c = ++epRowCount;
   var div = document.createElement('div');
   div.className = 'ep-block';
   div.id = 'eprow-' + c;
-  div.innerHTML =
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
-      '<span class="admin-label" style="margin:0">Bölüm ' + c + '</span>' +
-      '<button onclick="document.getElementById(\'eprow-'+c+'\').remove()" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.8rem;font-family:monospace">sil ✕</button>' +
-    '</div>' +
-    '<div class="ep-input-row">' +
-      '<div><label class="admin-label">Etiket</label>' +
-        '<input type="text" class="admin-input ep-label" placeholder="1. Bölüm" value="' + (label||c+'. Bölüm') + '"/></div>' +
-      '<div><label class="admin-label">Video Linki (Drive)</label>' +
-        '<input type="url" class="admin-input ep-video" placeholder="https://drive.google.com/..." value="' + (video||'') + '"/></div>' +
-      '<div><label class="admin-label">Altyazı Linki (Mega)</label>' +
-        '<input type="url" class="admin-input ep-sub" placeholder="https://mega.nz/..." value="' + (sub||'') + '"/></div>' +
-    '</div>' +
-    '<div><label class="admin-label">İndirme Linki (boş bırakırsan Drive\'dan üretilir)</label>' +
-      '<input type="url" class="admin-input ep-dl" placeholder="https://mega.nz/..." value="' + (dl||'') + '"/></div>';
+  div.innerHTML = buildEpRowHTML('eprow-' + c, c, label, video, sub, dl, 'ep-rows');
   document.getElementById('ep-rows').appendChild(div);
 }
 
-/* ── Kapak önizleme ── */
+function buildEpRowHTML(blockId, num, label, video, sub, dl, containerId) {
+  var safeLabel = (label || num + '. Bölüm').replace(/"/g,'&quot;');
+  var safeVideo = (video || '').replace(/"/g,'&quot;');
+  var safeSub   = (sub   || '').replace(/"/g,'&quot;');
+  var safeDl    = (dl    || '').replace(/"/g,'&quot;');
+  return (
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+      '<span class="admin-label" style="margin:0;display:flex;align-items:center;gap:8px">' +
+        '<span style="color:#b8a8d4">#' + num + '</span>' +
+        '<span style="color:#e8e0f0">' + safeLabel + '</span>' +
+      '</span>' +
+      '<button onclick="document.getElementById(\'' + blockId + '\').remove();renumberEpBlocks(\'' + containerId + '\')" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.78rem;font-family:monospace;padding:2px 6px;border:1px solid #f87171;border-radius:3px">sil ✕</button>' +
+    '</div>' +
+    '<div class="ep-input-row">' +
+      '<div><label class="admin-label">Etiket</label>' +
+        '<input type="text" class="admin-input ep-label" placeholder="1. Bölüm" value="' + safeLabel + '"/></div>' +
+      '<div><label class="admin-label">Video Linki (Drive)</label>' +
+        '<input type="url" class="admin-input ep-video" placeholder="https://drive.google.com/..." value="' + safeVideo + '"/></div>' +
+      '<div><label class="admin-label">Altyazı Linki (Mega)</label>' +
+        '<input type="url" class="admin-input ep-sub" placeholder="https://mega.nz/..." value="' + safeSub + '"/></div>' +
+    '</div>' +
+    '<div><label class="admin-label">İndirme Linki (boş = Drive\'dan otomatik)</label>' +
+      '<input type="url" class="admin-input ep-dl" placeholder="https://mega.nz/..." value="' + safeDl + '"/></div>'
+  );
+}
+
+function renumberEpBlocks(containerId) {
+  var blocks = document.querySelectorAll('#' + containerId + ' .ep-block');
+  blocks.forEach(function(block, i) {
+    var numSpan = block.querySelector('.admin-label span:first-child');
+    if (numSpan) numSpan.textContent = '#' + (i + 1);
+  });
+}
+
+/* ── Kapak önizleme (yeni anime formu) ── */
 document.addEventListener('input', function(e) {
   if (e.target && e.target.id === 'a-cover') {
     var val = e.target.value.trim();
     var wrap = document.getElementById('cover-preview');
     var img  = document.getElementById('cover-img');
-    if (val.startsWith('http')) {
-      img.src = val; wrap.style.display = '';
-    } else {
-      wrap.style.display = 'none';
-    }
+    if (val.startsWith('http')) { img.src = val; wrap.style.display = ''; }
+    else { wrap.style.display = 'none'; }
+  }
+  if (e.target && e.target.id === 'edit-cover') {
+    var val2 = e.target.value.trim();
+    var wrap2 = document.getElementById('edit-cover-preview');
+    var img2  = document.getElementById('edit-cover-img');
+    if (val2.startsWith('http')) { img2.src = val2; wrap2.style.display = ''; }
+    else { wrap2.style.display = 'none'; }
   }
 });
 
-/* ── Formu temizle ── */
 function resetAdminForm() {
   document.getElementById('a-title').value = '';
   document.getElementById('a-cover').value = '';
@@ -1274,25 +1415,6 @@ function resetAdminForm() {
   epRowCount = 0;
 }
 
-/* ── Anime ID üret ── */
-function toId(str) {
-  return str.toLowerCase()
-    .replace(/[çÇ]/g,'c').replace(/[ğĞ]/g,'g').replace(/[ıİ]/g,'i')
-    .replace(/[öÖ]/g,'o').replace(/[şŞ]/g,'s').replace(/[üÜ]/g,'u')
-    .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
-}
-
-/* ── Toast göster ── */
-function adminToast(msg, color) {
-  var t = document.getElementById('admin-toast');
-  t.textContent = msg;
-  t.style.background = color || '#c4a8ff';
-  t.style.color = color ? '#fff' : '#1a0d33';
-  t.classList.add('show');
-  setTimeout(function(){ t.classList.remove('show'); }, 2800);
-}
-
-/* ── Yeni anime kaydet ── */
 function saveNewAnime() {
   var title  = document.getElementById('a-title').value.trim();
   var cover  = document.getElementById('a-cover').value.trim();
@@ -1303,117 +1425,280 @@ function saveNewAnime() {
   document.getElementById('a-title').classList.remove('error');
   document.getElementById('a-cover').classList.remove('error');
 
-  var epBlocks = document.querySelectorAll('#ep-rows .ep-block');
+  var episodes = collectEpBlocks('#ep-rows');
+  if (episodes.length === 0) { adminToast('En az 1 bölüm ekle!', '#f87171'); return; }
+
+  var id = toId(title);
+  if (ANIME_DB.some(function(a){ return a.id === id; })) id = id + '-' + Date.now().toString(36);
+
+  var newAnime = { id:id, title:title, cover:cover, status:status, episodes:episodes };
+
+  var stored = JSON.parse(localStorage.getItem('alitasubs_anime_db') || '[]');
+  stored.push(newAnime);
+  localStorage.setItem('alitasubs_anime_db', JSON.stringify(stored));
+  ANIME_DB.push(newAnime);
+  refreshAllViews();
+
+  adminToast('✓ "' + title + '" kaydedildi!');
+  resetAdminForm();
+  addEpRow();
+}
+
+/* ─────────────────────────────────────────────
+   DÜZENLEME SEKMESİ
+───────────────────────────────────────────── */
+function renderEditPicker() {
+  var list = document.getElementById('edit-picker-list');
+  list.innerHTML = '';
+  var statusColors = { 'devam-ediyor':'#9b7fd4', 'tamamlandi':'#c4a8ff', 'askiya-alindi':'#fbbf24' };
+  var statusLabels = { 'devam-ediyor':'Devam Ediyor', 'tamamlandi':'Tamamlandı', 'askiya-alindi':'Askıya Alındı' };
+  var stored = JSON.parse(localStorage.getItem('alitasubs_anime_db') || '[]');
+  var storedIds = stored.map(function(a){ return a.id; });
+
+  /* Tüm ANIME_DB (hardcoded + local), alfabetik */
+  var sorted = ANIME_DB.slice().sort(function(a,b){ return a.title.localeCompare(b.title,'tr'); });
+
+  if (sorted.length === 0) {
+    list.innerHTML = '<p style="color:#5b3d8a;font-family:monospace;font-size:0.8rem">Hiç anime yok.</p>';
+    return;
+  }
+
+  sorted.forEach(function(anime) {
+    var isLocal = storedIds.indexOf(anime.id) !== -1;
+    var div = document.createElement('div');
+    div.className = 'admin-section';
+    div.style.cssText = 'margin-bottom:8px;cursor:pointer;transition:border-color 0.2s';
+    div.onmouseenter = function(){ div.style.borderColor = '#c4a8ff'; };
+    div.onmouseleave = function(){ div.style.borderColor = '#3d2d5c'; };
+    div.innerHTML =
+      '<div style="display:flex;align-items:center;gap:12px">' +
+        '<img src="' + anime.cover + '" style="width:36px;height:52px;object-fit:cover;border:1px solid #3d2d5c;flex-shrink:0" onerror="this.style.background=\'#17122a\'"/>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="color:#e8e0f0;font-weight:700;font-size:0.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + anime.title + '</div>' +
+          '<div style="font-family:monospace;font-size:0.68rem;color:' + (statusColors[anime.status]||'#b8a8d4') + ';margin-top:2px">' +
+            (statusLabels[anime.status]||anime.status) + ' · ' + anime.episodes.length + ' bölüm' +
+          '</div>' +
+          '<div style="font-family:monospace;font-size:0.62rem;color:' + (isLocal ? '#34d399' : '#6b7280') + ';margin-top:1px">' +
+            (isLocal ? '● localStorage' : '○ Hardcoded (düzenleme localStorage\'e yazılır)') +
+          '</div>' +
+        '</div>' +
+        '<button onclick="openEditForm(\'' + anime.id + '\')" class="admin-btn admin-btn-primary" style="padding:8px 14px;font-size:0.72rem;flex-shrink:0">Düzenle ✏</button>' +
+      '</div>';
+    list.appendChild(div);
+  });
+
+  /* Picker'ı göster, formu gizle */
+  document.getElementById('edit-anime-picker').style.display = 'block';
+  document.getElementById('edit-anime-form').style.display   = 'none';
+}
+
+function openEditForm(animeId) {
+  var anime = ANIME_DB.find(function(a){ return a.id === animeId; });
+  if (!anime) return;
+
+  editingAnimeId = animeId;
+  var stored = JSON.parse(localStorage.getItem('alitasubs_anime_db') || '[]');
+  editingAnimeSource = stored.some(function(a){ return a.id === animeId; }) ? 'local' : 'hardcoded';
+
+  /* Formu doldur */
+  document.getElementById('edit-form-title').textContent = 'Düzenleniyor: ' + anime.title;
+  document.getElementById('edit-title').value  = anime.title;
+  document.getElementById('edit-cover').value  = anime.cover;
+  document.getElementById('edit-status').value = anime.status;
+
+  /* Kapak önizleme */
+  var epw = document.getElementById('edit-cover-preview');
+  var epi = document.getElementById('edit-cover-img');
+  if (anime.cover.startsWith('http')) { epi.src = anime.cover; epw.style.display = ''; }
+  else { epw.style.display = 'none'; }
+
+  /* Bölümleri doldur */
+  var container = document.getElementById('edit-ep-rows');
+  container.innerHTML = '';
+  editEpRowCount = 0;
+  anime.episodes.forEach(function(ep) {
+    addEditEpRow(ep.label, ep.video, ep.sub, ep.dl);
+  });
+
+  /* Picker'ı gizle, formu göster */
+  document.getElementById('edit-anime-picker').style.display = 'none';
+  document.getElementById('edit-anime-form').style.display   = 'block';
+
+  /* Forma scroll et */
+  setTimeout(function(){
+    var box = document.querySelector('.admin-box');
+    if (box) box.scrollTo({ top: 0, behavior: 'smooth' });
+  }, 50);
+}
+
+function backToEditPicker() {
+  editingAnimeId     = null;
+  editingAnimeSource = null;
+  document.getElementById('edit-anime-picker').style.display = 'block';
+  document.getElementById('edit-anime-form').style.display   = 'none';
+  renderEditPicker();
+}
+
+function addEditEpRow(label, video, sub, dl) {
+  var c = ++editEpRowCount;
+  var div = document.createElement('div');
+  div.className = 'ep-block';
+  div.id = 'edit-eprow-' + c;
+  div.innerHTML = buildEpRowHTML('edit-eprow-' + c, c, label, video, sub, dl, 'edit-ep-rows');
+  document.getElementById('edit-ep-rows').appendChild(div);
+}
+
+/* Bölüm satırlarından veri topla */
+function collectEpBlocks(selector) {
   var episodes = [];
-  epBlocks.forEach(function(block) {
-    var label = block.querySelector('.ep-label').value.trim() || (episodes.length+1)+'. Bölüm';
+  document.querySelectorAll(selector + ' .ep-block').forEach(function(block) {
+    var label = block.querySelector('.ep-label').value.trim() || (episodes.length+1) + '. Bölüm';
     var video = block.querySelector('.ep-video').value.trim() || 'LINK_BURAYA';
     var sub   = block.querySelector('.ep-sub').value.trim()   || 'MEGA_LİNKİ';
     var dl    = block.querySelector('.ep-dl').value.trim()    || 'MEGA_LİNKİ';
     episodes.push({ label:label, video:video, sub:sub, dl:dl });
   });
-
-  if (episodes.length === 0) {
-    adminToast('En az 1 bölüm ekle!', '#f87171'); return;
-  }
-
-  var id = toId(title);
-  /* ID çakışmasını önle */
-  var exists = ANIME_DB.some(function(a){ return a.id === id; });
-  if (exists) id = id + '-' + Date.now().toString(36);
-
-  ANIME_DB.push({ id:id, title:title, cover:cover, status:status, episodes:episodes });
-
-  /* Sayfaları yenile */
-  renderAnimeGrid(currentFilter);
-  renderEpPanels();
-  renderSubList(currentSubFilter);
-
-  adminToast('✓ "' + title + '" eklendi!');
-  resetAdminForm();
-  addEpRow();
+  return episodes;
 }
 
-/* ── Mevcut liste render ── */
+function saveEditedAnime() {
+  if (!editingAnimeId) return;
+
+  var title  = document.getElementById('edit-title').value.trim();
+  var cover  = document.getElementById('edit-cover').value.trim();
+  var status = document.getElementById('edit-status').value;
+
+  if (!title) { document.getElementById('edit-title').classList.add('error'); document.getElementById('edit-title').focus(); return; }
+  if (!cover) { document.getElementById('edit-cover').classList.add('error'); document.getElementById('edit-cover').focus(); return; }
+  document.getElementById('edit-title').classList.remove('error');
+  document.getElementById('edit-cover').classList.remove('error');
+
+  var episodes = collectEpBlocks('#edit-ep-rows');
+  if (episodes.length === 0) { adminToast('En az 1 bölüm lazım!', '#f87171'); return; }
+
+  /* ANIME_DB'yi güncelle */
+  var idx = ANIME_DB.findIndex(function(a){ return a.id === editingAnimeId; });
+  if (idx === -1) { adminToast('Anime bulunamadı!', '#f87171'); return; }
+  ANIME_DB[idx].title    = title;
+  ANIME_DB[idx].cover    = cover;
+  ANIME_DB[idx].status   = status;
+  ANIME_DB[idx].episodes = episodes;
+
+  /* localStorage'e yaz (hem hardcoded olanları da artık local'e kopyala) */
+  var stored = JSON.parse(localStorage.getItem('alitasubs_anime_db') || '[]');
+  var localIdx = stored.findIndex(function(a){ return a.id === editingAnimeId; });
+  if (localIdx !== -1) {
+    /* Zaten local'de var → güncelle */
+    stored[localIdx] = ANIME_DB[idx];
+  } else {
+    /* Hardcoded'dan geliyordu → local'e kopyala (override) */
+    stored.push(JSON.parse(JSON.stringify(ANIME_DB[idx])));
+  }
+  localStorage.setItem('alitasubs_anime_db', JSON.stringify(stored));
+
+  refreshAllViews();
+  adminToast('✓ "' + title + '" güncellendi!');
+  backToEditPicker();
+}
+
+function deleteEditingAnime() {
+  if (!editingAnimeId) return;
+  var anime = ANIME_DB.find(function(a){ return a.id === editingAnimeId; });
+  if (!anime) return;
+  if (!confirm('"' + anime.title + '" silinsin mi? Bu işlem geri alınamaz.')) return;
+
+  /* ANIME_DB'den çıkar */
+  ANIME_DB = ANIME_DB.filter(function(a){ return a.id !== editingAnimeId; });
+
+  /* localStorage'den çıkar */
+  var stored = JSON.parse(localStorage.getItem('alitasubs_anime_db') || '[]');
+  stored = stored.filter(function(a){ return a.id !== editingAnimeId; });
+  localStorage.setItem('alitasubs_anime_db', JSON.stringify(stored));
+
+  refreshAllViews();
+  adminToast('🗑 Anime silindi.', '#f87171');
+  backToEditPicker();
+}
+
+/* ─────────────────────────────────────────────
+   MEVCUT LİSTE (özet görünümü)
+───────────────────────────────────────────── */
 function renderAdminList() {
   var c = document.getElementById('admin-anime-list');
   if (!c) return;
   c.innerHTML = '';
-  if (ANIME_DB.length === 0) {
-    c.innerHTML = '<p style="color:#5b3d8a;font-family:monospace;font-size:0.8rem">Henüz anime yok.</p>'; return;
+  var statusColors  = { 'devam-ediyor':'#9b7fd4', 'tamamlandi':'#c4a8ff', 'askiya-alindi':'#fbbf24' };
+  var statusLabels  = { 'devam-ediyor':'Devam Ediyor', 'tamamlandi':'Tamamlandı', 'askiya-alindi':'Askıya Alındı' };
+  var stored        = JSON.parse(localStorage.getItem('alitasubs_anime_db') || '[]');
+  var storedIds     = stored.map(function(a){ return a.id; });
+  var sorted        = ANIME_DB.slice().sort(function(a,b){ return a.title.localeCompare(b.title,'tr'); });
+
+  if (sorted.length === 0) {
+    c.innerHTML = '<p style="color:#5b3d8a;font-family:monospace;font-size:0.8rem">Hiç anime yok.</p>';
+    return;
   }
-  ANIME_DB.slice().sort(function(a,b){ return a.title.localeCompare(b.title,'tr'); }).forEach(function(anime) {
+
+  sorted.forEach(function(anime) {
+    var isLocal = storedIds.indexOf(anime.id) !== -1;
     var div = document.createElement('div');
     div.className = 'admin-section';
-    div.style.marginBottom = '10px';
-    var statusColors = { 'devam-ediyor':'#9b7fd4', 'tamamlandi':'#c4a8ff', 'askiya-alindi':'#fbbf24' };
+    div.style.marginBottom = '8px';
     div.innerHTML =
-      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">' +
-        '<img src="' + anime.cover + '" style="width:36px;height:52px;object-fit:cover;border:1px solid #3d2d5c;flex-shrink:0"/>' +
-        '<div style="flex:1">' +
-          '<div style="color:#e8e0f0;font-weight:700;font-size:0.9rem">' + anime.title + '</div>' +
-          '<div style="font-family:monospace;font-size:0.7rem;color:' + (statusColors[anime.status]||'#b8a8d4') + '">' + anime.status + ' · ' + anime.episodes.length + ' bölüm</div>' +
+      '<div style="display:flex;align-items:center;gap:10px">' +
+        '<img src="' + anime.cover + '" style="width:34px;height:50px;object-fit:cover;border:1px solid #3d2d5c;flex-shrink:0" onerror="this.style.background=\'#17122a\'"/>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="color:#e8e0f0;font-weight:700;font-size:0.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + anime.title + '</div>' +
+          '<div style="font-family:monospace;font-size:0.68rem;color:' + (statusColors[anime.status]||'#b8a8d4') + ';margin-top:2px">' +
+            (statusLabels[anime.status]||anime.status) + ' · ' + anime.episodes.length + ' bölüm' +
+          '</div>' +
+          '<div style="font-family:monospace;font-size:0.62rem;color:' + (isLocal?'#34d399':'#6b7280') + ';margin-top:1px">' +
+            (isLocal ? '● localStorage' : '○ Hardcoded') +
+          '</div>' +
         '</div>' +
-        '<button onclick="deleteAnime(\'' + anime.id + '\')" class="admin-btn admin-btn-danger" style="padding:6px 10px;font-size:0.7rem;flex-shrink:0">Sil</button>' +
-      '</div>' +
-      '<details style="font-family:monospace;font-size:0.72rem">' +
-        '<summary style="cursor:pointer;color:#b8a8d4;margin-bottom:6px">Bölümleri göster (' + anime.episodes.length + ')</summary>' +
-        anime.episodes.map(function(ep, i){
-          return '<div style="padding:6px 0;border-top:1px solid #3d2d5c;color:#b8a8d4;display:flex;justify-content:space-between;align-items:center">' +
-            '<span>' + ep.label + '</span>' +
-            '<button onclick="deleteEpisode(\'' + anime.id + '\',' + i + ')" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.72rem;font-family:monospace">sil</button>' +
-          '</div>';
-        }).join('') +
-        '<div style="margin-top:8px"><button onclick="quickAddEp(\'' + anime.id + '\')" class="admin-btn admin-btn-ghost" style="padding:5px 10px;font-size:0.7rem;width:100%">+ Bu Animeye Bölüm Ekle</button></div>' +
-      '</details>';
+        '<button onclick="adminTab(\'duzenle\');setTimeout(function(){openEditForm(\'' + anime.id + '\')},80)" ' +
+          'class="admin-btn admin-btn-primary" style="padding:6px 10px;font-size:0.68rem;flex-shrink:0">Düzenle</button>' +
+      '</div>';
     c.appendChild(div);
   });
 }
 
-/* ── Anime sil ── */
-function deleteAnime(id) {
-  if (!confirm('Bu animeyi silmek istediğine emin misin?')) return;
-  ANIME_DB = ANIME_DB.filter(function(a){ return a.id !== id; });
+/* ─────────────────────────────────────────────
+   GITHUB EXPORT
+───────────────────────────────────────────── */
+function generateGithubExport() {
+  var code = 'var ANIME_DB = ' + JSON.stringify(ANIME_DB, null, 2) + ';';
+  document.getElementById('github-export').value = code;
+}
+
+function copyToClipboard(id) {
+  var el = document.getElementById(id);
+  el.select();
+  document.execCommand('copy');
+  adminToast('✓ Kopyalandı!');
+}
+
+/* ─────────────────────────────────────────────
+   LOCALSTORAGE YÜKLEME
+───────────────────────────────────────────── */
+function loadFromLocalStorage() {
+  var stored = JSON.parse(localStorage.getItem('alitasubs_anime_db') || '[]');
+  if (stored.length > 0) {
+    /* Çakışan ID'leri bul: localStorage öncelikli */
+    ANIME_DB = ANIME_DB.filter(function(a) {
+      return !stored.some(function(s){ return s.id === a.id; });
+    });
+    ANIME_DB = ANIME_DB.concat(stored);
+  }
+}
+
+/* Tüm görünümleri yenile */
+function refreshAllViews() {
   renderAnimeGrid(currentFilter);
   renderEpPanels();
   renderSubList(currentSubFilter);
-  renderAdminList();
-  adminToast('Anime silindi.');
 }
 
-/* ── Bölüm sil ── */
-function deleteEpisode(animeId, idx) {
-  var anime = ANIME_DB.find(function(a){ return a.id === animeId; });
-  if (!anime) return;
-  anime.episodes.splice(idx, 1);
-  renderAnimeGrid(currentFilter);
-  renderEpPanels();
-  renderSubList(currentSubFilter);
-  renderAdminList();
-  adminToast('Bölüm silindi.');
-}
-
-/* ── Hızlı bölüm ekle (mevcut anime) ── */
-function quickAddEp(animeId) {
-  var anime = ANIME_DB.find(function(a){ return a.id === animeId; });
-  if (!anime) return;
-  var label = prompt('Bölüm etiketi:', (anime.episodes.length+1) + '. Bölüm');
-  if (!label) return;
-  var video = prompt('Video linki (Drive):') || 'LINK_BURAYA';
-  var sub   = prompt('Altyazı linki (Mega):') || 'MEGA_LİNKİ';
-  var dl    = prompt('İndirme linki (boş = Drive\'dan otomatik):') || '';
-  anime.episodes.push({ label:label, video:video, sub:sub, dl:dl||'MEGA_LİNKİ' });
-  renderAnimeGrid(currentFilter);
-  renderEpPanels();
-  renderSubList(currentSubFilter);
-  renderAdminList();
-  adminToast('✓ Bölüm eklendi!');
-}
-
-/* Admin şifresini değiştirme talimatı: Konsolda çalıştır:
-   crypto.subtle.digest('SHA-256',new TextEncoder().encode('yenisifren'))
-   .then(b=>console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
-   Çıkan string'i ADMIN_PW_HASH'e koy. */
+/* window.onload zaten her şeyi hallediyor; bu listener sadece yedek */
 </script>
 
 </body>
