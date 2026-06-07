@@ -216,18 +216,23 @@ tailwind.config = {
     background:rgba(0,0,0,0.95); overflow-y:auto;
     -webkit-overflow-scrolling:touch;
   }
-  #admin-modal.open { display:flex; align-items:flex-start; justify-content:center; padding:20px; }
+  #admin-modal.open { display:flex; align-items:flex-start; justify-content:center; padding:12px; }
   .admin-box {
-    width:100%; max-width:680px; margin-top:60px; margin-bottom:40px;
+    width:100%; max-width:680px; margin-top:16px; margin-bottom:24px;
     background:#0e0b14; border:2px solid #c4a8ff;
-    padding:24px; border-radius:4px;
+    padding:16px; border-radius:4px;
+  }
+  @media (min-width:600px) {
+    #admin-modal.open { padding:20px; }
+    .admin-box { margin-top:60px; margin-bottom:40px; padding:24px; }
   }
   .admin-input {
     width:100% !important; background:#17122a !important; border:1px solid #3d2d5c !important;
-    color:#e8e0f0 !important; padding:10px 14px !important; font-family:monospace !important;
+    color:#e8e0f0 !important; padding:12px 14px !important; font-family:monospace !important;
     font-size:16px !important; border-radius:4px !important; outline:none !important;
     box-sizing:border-box !important; transition: border-color 0.2s !important;
     -webkit-appearance:none !important; appearance:none !important;
+    touch-action:manipulation;
   }
   .admin-input::placeholder { color:#5b3d8a !important; opacity:1 !important; }
   .admin-input:focus { border-color:#c4a8ff !important; background:#17122a !important; }
@@ -238,32 +243,40 @@ tailwind.config = {
     letter-spacing:0.1em; color:#e8e0f0; margin-bottom:5px; display:block;
   }
   .admin-section {
-    border:1px solid #3d2d5c; border-radius:4px; padding:16px; margin-bottom:16px;
+    border:1px solid #3d2d5c; border-radius:4px; padding:12px; margin-bottom:12px;
+  }
+  @media (min-width:600px) {
+    .admin-section { padding:16px; margin-bottom:16px; }
   }
   .ep-input-row {
-    display:grid; grid-template-columns:90px 1fr 1fr; gap:8px; margin-bottom:8px; align-items:start;
+    display:grid; grid-template-columns:1fr; gap:8px; margin-bottom:8px; align-items:start;
   }
-  @media (max-width:520px) {
-    .ep-input-row { grid-template-columns:1fr; }
+  @media (min-width:520px) {
+    .ep-input-row { grid-template-columns:90px 1fr 1fr; }
   }
   .admin-btn {
     font-family:monospace; font-size:0.78rem; text-transform:uppercase;
-    letter-spacing:0.08em; padding:10px 18px; border:none; cursor:pointer;
+    letter-spacing:0.08em; padding:12px 16px; border:none; cursor:pointer;
     border-radius:3px; font-weight:700; transition: opacity 0.2s;
+    touch-action:manipulation;
+    min-height:44px;
   }
   .admin-btn:active { opacity:0.7; }
   .admin-btn-primary { background:#c4a8ff; color:#1a0d33; }
   .admin-btn-danger  { background:transparent; color:#f87171; border:1px solid #f87171; }
   .admin-btn-ghost   { background:transparent; color:#e8e0f0; border:1px solid #3d2d5c; }
+  .admin-tab-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px; }
+  .admin-tab-row .admin-btn { flex:1; min-width:0; font-size:0.7rem; padding:10px 4px; text-align:center; }
   .admin-toast {
     position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
     background:#c4a8ff; color:#1a0d33; font-family:monospace; font-weight:700;
     font-size:0.8rem; padding:12px 24px; border-radius:4px; z-index:11000;
     opacity:0; transition: opacity 0.3s; pointer-events:none; white-space:nowrap;
+    max-width:90vw; text-align:center;
   }
   .admin-toast.show { opacity:1; }
-  .ep-block { background:#17122a; border-radius:4px; padding:12px; margin-bottom:10px; }
-  .admin-lock-screen { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:40px 20px; }
+  .ep-block { background:#17122a; border-radius:4px; padding:10px; margin-bottom:10px; }
+  .admin-lock-screen { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:32px 12px; }
 </style>
 </head>
 <body class="bg-background text-on-surface min-h-screen flex flex-col font-body antialiased">
@@ -290,9 +303,6 @@ tailwind.config = {
     <button onclick="goTo('altyazilar')" class="nav-link text-zinc-500 hover:text-black hover:bg-purple-400 transition-all px-2 py-1 bg-transparent border-none cursor-pointer font-mono uppercase tracking-widest text-xs">Altyazılar</button>
     <button onclick="goTo('hakkimda')"   class="nav-link text-zinc-500 hover:text-black hover:bg-purple-400 transition-all px-2 py-1 bg-transparent border-none cursor-pointer font-mono uppercase tracking-widest text-xs">Hakkımda</button>
     <span id="nav-discord"></span>
-    <button onclick="openAdmin()" title="Yönetici Paneli" class="text-zinc-600 hover:text-purple-400 transition-colors bg-transparent border-none cursor-pointer p-1" style="line-height:0">
-      <span class="material-symbols-outlined" style="font-size:18px;">admin_panel_settings</span>
-    </button>
   </div>
 
   <!-- MOBİL HAMBURGERe -->
@@ -549,7 +559,7 @@ function renderSiteGlobals() {
   var footerHTML =
     '<footer class="w-full py-6 md:py-10 px-4 md:px-8 flex flex-col md:flex-row justify-between items-center gap-2 md:gap-4 bg-black border-t-2 border-purple-900/50">' +
       '<div class="font-logo text-lg text-purple-300">' + cfg.ad + '</div>' +
-      '<div class="font-mono text-[10px] uppercase tracking-widest text-zinc-600">\u00a9 ' + cfg.yil + ' ' + cfg.ad + '. ' + cfg.altyazi + '.</div>' +
+      '<div id="footer-copy" class="font-mono text-[10px] uppercase tracking-widest text-zinc-600 select-none cursor-default" onclick="footerAdminTap()" style="-webkit-tap-highlight-color:transparent">\u00a9 ' + cfg.yil + ' ' + cfg.ad + '. ' + cfg.altyazi + '.</div>' +
     '</footer>';
 
   document.querySelectorAll('.site-footer-placeholder').forEach(function(el) {
@@ -1071,6 +1081,20 @@ function toggleMobileMenu() {
 /* ── ANİME SIRALAMA (renderAnimeGrid + clearArchiveSearch halleder) ── */
 function sortAnimeGrid() { clearArchiveSearch(); }
 
+/* ── GİZLİ ADMİN AÇMA — footer copyright'a 3 kez tıkla ── */
+var _footerTapCount = 0;
+var _footerTapTimer = null;
+function footerAdminTap() {
+  _footerTapCount++;
+  clearTimeout(_footerTapTimer);
+  if (_footerTapCount >= 3) {
+    _footerTapCount = 0;
+    openAdmin();
+    return;
+  }
+  _footerTapTimer = setTimeout(function() { _footerTapCount = 0; }, 800);
+}
+
 /* ── BÖLÜM PANELİ AÇ ── */
 function showEpisodes(animeId, pushState) {
   if (pushState !== false) history.pushState({ page: 'arsiv', episode: animeId }, '', '#ep-' + animeId);
@@ -1255,17 +1279,17 @@ window.addEventListener('popstate', function(e) {
 
     <!-- ANA PANEL (şifre doğru ise açılır) -->
     <div id="admin-panel" style="display:none">
-      <div class="flex items-center justify-between mb-6 border-b border-zinc-800 pb-4">
-        <h2 class="font-logo text-2xl text-white tracking-widest">⚙ YÖNETİCİ PANELİ</h2>
-        <button onclick="closeAdmin()" class="admin-btn admin-btn-ghost">✕ Kapat</button>
+      <div class="flex items-center justify-between mb-4 border-b border-zinc-800 pb-4">
+        <h2 class="font-logo text-xl text-white tracking-widest">⚙ YÖNETİCİ</h2>
+        <button onclick="closeAdmin()" class="admin-btn admin-btn-ghost" style="padding:8px 14px;min-height:36px">✕ Kapat</button>
       </div>
 
       <!-- SEKME -->
-      <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
-        <button onclick="adminTab('ekle')"   id="atab-ekle"   class="admin-btn admin-btn-primary">+ Yeni Anime</button>
+      <div class="admin-tab-row">
+        <button onclick="adminTab('ekle')"   id="atab-ekle"   class="admin-btn admin-btn-primary">+ Ekle</button>
         <button onclick="adminTab('duzenle')" id="atab-duzenle" class="admin-btn admin-btn-ghost">✏ Düzenle</button>
         <button onclick="adminTab('liste')"  id="atab-liste"  class="admin-btn admin-btn-ghost">📋 Liste</button>
-        <button onclick="adminTab('sync')"   id="atab-sync"   class="admin-btn admin-btn-ghost">☁ GitHub Sync</button>
+        <button onclick="adminTab('sync')"   id="atab-sync"   class="admin-btn admin-btn-ghost">☁ Sync</button>
       </div>
 
       <!-- YENİ ANİME EKLE SEKMESİ -->
